@@ -17,53 +17,57 @@ TimeSync 是一款智能群体时间协调系统，专为解决多人日程匹�
 
 ## 后端使用方法
 
+> 见[backend](https://github.com/SweetGargamel/time_sync_frontend)
+
 1. 克隆仓库到本地
 
 2. 运行一下代码安装依赖
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 3. 在`/time_sync`目录下新增一个配置文件`Config.py`，内容如下：
 
-    ```python
-    import os
+   ```python
+   import os
 
-    class Config:
-        # Flask应用程序的密钥
-        SECRET_KEY = os.environ.get('SECRET_KEY', 'dev')
-
-
-        # 应用程序名称
-        APP_NAME = os.environ.get('APP_NAME', 'Flask App')
-
-        # SQLAlchemy配置
-        SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql://username:password@localhost/time_sync')
+   class Config:
+       # Flask应用程序的密钥
+       SECRET_KEY = os.environ.get('SECRET_KEY', 'dev')
 
 
-        SQLALCHEMY_TRACK_MODIFICATIONS = False
+       # 应用程序名称
+       APP_NAME = os.environ.get('APP_NAME', 'Flask App')
 
-        index=0
-        OPENAI_API_KEYS = ["sk-****286","sk-****701"] #替换为您的阿里云api key
-        @staticmethod
-        def get_key():
-            Config.index+=1
-            if Config.index>=len(Config.OPENAI_API_KEYS):
-                Config.index=0
-            return Config.OPENAI_API_KEYS[Config.index]
-        OPENAI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-        #  阿里云智能体的apikey和id。我们在`route.py`里面用到了这个，用来处理query的信息。
-        ALI_AGENT_APIKEY="sk-****f8f"
-        ALI_AGENT_ID=''
-        MODEL_NAME="qwen-plus-latest"
-    ```
+       # SQLAlchemy配置
+       SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql://username:password@localhost/time_sync')
+
+
+       SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+       index=0
+       OPENAI_API_KEYS = ["sk-****286","sk-****701"] #替换为您的阿里云api key
+       @staticmethod
+       def get_key():
+           Config.index+=1
+           if Config.index>=len(Config.OPENAI_API_KEYS):
+               Config.index=0
+           return Config.OPENAI_API_KEYS[Config.index]
+       OPENAI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+       #  阿里云智能体的apikey和id。我们在`route.py`里面用到了这个，用来处理query的信息。
+       ALI_AGENT_APIKEY="sk-****f8f"
+       ALI_AGENT_ID=''
+       MODEL_NAME="qwen-plus-latest"
+   ```
 
 4. 安装PostgreSQL数据库，并创建一个数据库`time_sync`。你也可以用其他数据库，但需要修改`Config.py`中的数据库配置。
 
 5. 因为安全原因，我们无法公开我们部署的阿里云的api_key，所以可能最后测试预定日程的时候无法调用ai返回的结果（会默认使用未经过大模型处理的结果）。您可以移步到我们已经部署的阿里云网站查看。
 
 ## 前端使用方法
+
+> 见[frontend](https://github.com/SweetGargamel/time_sync_frontend)
 
 1. 在本地安装node.js环境
 
@@ -73,11 +77,11 @@ TimeSync 是一款智能群体时间协调系统，专为解决多人日程匹�
 
 4. 启动后端服务器
 
-5. 最后打开 [](http://localhost:5173/)即可本地查看页面
+5. 最后打开 http://localhost:5173/ 即可本地查看页面
 
 ## 网站部署
 
-您可以访问 [](http://47.122.85.137/)来查看我们的已经部署好的网站。由于我们暂时只是测试阶段，允许所有人有修改人员和组信息，您可以做少量的删改的测试，但是请您不要把所有的人员信息都删除。
+您可以访问 http://47.122.85.137 来查看我们的已经部署好的网站。由于我们暂时只是测试阶段，允许所有人有修改人员和组信息，您可以做少量的删改的测试，但是请您不要把所有的人员信息都删除。
 
 由于阿里云的限制，我们的服务器暂时不允许绑定域名。同时我们购买的阿里云配置有限，可能会出现大量访问时出现卡顿的情况。
 
@@ -96,6 +100,7 @@ _当志愿服务的温暖如期抵达，是它在道 "善意值得最顺畅的�
 _当学术灵感在预定的时空畅快碰撞，是它在轻吟 "智慧的交响需要精准的节拍"；_
 
 _当日历上亮起代表共识的绿色区块，那是技术在轻语"看，我们找到了相聚的答案"。_
+<br />
 
 _从教室到实验室，从行政楼到社团活动室，我们愿做无声的守护者——_
 
@@ -106,6 +111,7 @@ _不让任何一次协作因繁琐而降温。_
 _我们让错过的遗憾化作重逢的惊喜，_
 
 _将零散的日程编织成紧密的联结。_
+<br />
 
 _最好的技术，_
 
@@ -115,4 +121,4 @@ _而是能读懂你匆忙脚步下的期待，_
 
 _能守护你珍贵时光里的每一度温暖。_
 
-> _——By RayNovate Team_
+> ——By RayNovate Team
