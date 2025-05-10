@@ -14,7 +14,157 @@ bp = Blueprint('main', __name__)
 
 
 
-def calculate_availability(dayL: date, dayR: date, persons: list[str], must_persons: list[str], duration_hours: int, all_events: list[UserEvents],suggest_count_want:int =10):
+# def calculate_availability(dayL: date, dayR: date, persons: list[str], must_persons: list[str], duration_hours: float, all_events: list[UserEvents],suggest_count_want:int =10):
+#     """
+#     计算时间段内的用户可用性，并生成 time_slots 和初步的 suggest_time。
+#     """
+#     person_ids_int = {int(p) for p in persons}
+#     must_person_ids_int = {int(p) for p in must_persons}
+#     num_persons = len(person_ids_int)
+#     num_must_persons = len(must_person_ids_int)
+
+#     # 按用户ID组织事件，方便查询
+#     user_events_map = {}
+#     for p_id in person_ids_int:
+#         user_events_map[p_id] = [e for e in all_events if e.user_id == p_id]
+
+#     # --- 1. 计算 time_slots ---
+#     time_slots = []
+#     start_hour = 8
+#     end_hour = 22 # 时间范围 8:00 到 21:59
+#     time_interval_minutes = 30
+#     # duration_intervals = int(duration_hours * 60 / time_interval_minutes) # 会议持续时间对应的 30 分钟间隔数
+
+#     current_date = dayL
+#     while current_date <= dayR:
+#         day_info = {
+#             "date": current_date.isoformat(),
+#             "time_intervals": []
+#         }
+#         current_dt = datetime.combine(current_date, time(start_hour, 0))
+#         end_dt_of_day = datetime.combine(current_date, time(end_hour, 0))
+
+#         while current_dt < end_dt_of_day:
+#             interval_start = current_dt
+#             interval_end = current_dt + timedelta(minutes=time_interval_minutes)
+#             interval_start_time_str = interval_start.strftime("%H:%M")
+#             interval_end_time_str = interval_end.strftime("%H:%M")
+
+#             available_count = 0
+#             unavailable_ids = []
+#             unavailable_must_ids = []
+#             num_must_available = 0
+#             weight = 0.0 # Initialize weight for the interval, to be calculated iteratively
+
+#             for p_id in person_ids_int:
+#                 is_busy = False
+#                 # 检查该用户是否有事件与当前 30 分钟间隔重叠
+#                 for event in user_events_map.get(p_id, []):
+#                     # 事件时间需要是 aware 或 naive 一致，这里假设它们都是 naive UTC 或本地时间
+#                     event_start = event.start_time # 假设是 datetime 对象
+#                     event_end = event.end_time   # 假设是 datetime 对象
+#                     # 检查重叠: (StartA < EndB) and (EndA > StartB)
+#                     if event_start < interval_end and event_end > interval_start:
+#                         is_busy = True
+#                         break # 只要有一个事件重叠，该用户就忙碌
+
+#                 if is_busy:
+#                     unavailable_ids.append(str(p_id))
+#                     if p_id in must_person_ids_int:
+#                         unavailable_must_ids.append(str(p_id))
+#                 else:
+#                     available_count += 1
+#                     if p_id in must_person_ids_int:
+#                         num_must_available += 1
+                
+#                 # Accumulate weight based on availability and importance
+#                 person_importance_factor = 1e9 if p_id in must_person_ids_int else 1
+#                 if not is_busy: # If the person is available
+#                     weight += person_importance_factor
+
+#             interval_info = {
+#                 "start": interval_start_time_str,
+#                 "end": interval_end_time_str,
+#                 "weight": weight, # 使用上面计算的 weight
+#                 "available_people_count": available_count,
+#                 "unavailable_people": unavailable_ids,
+#                 "unavailable_must_people": unavailable_must_ids
+#             }
+#             day_info["time_intervals"].append(interval_info)
+#             current_dt += timedelta(minutes=time_interval_minutes)
+
+#         time_slots.append(day_info)
+#         current_date += timedelta(days=1)
+
+#     # --- 2. 计算初步的 suggest_time ---
+#     potential_suggestions = []
+#     current_date = dayL
+#     while current_date <= dayR:
+#         current_dt = datetime.combine(current_date, time(start_hour, 0))
+#         end_dt_of_day = datetime.combine(current_date, time(end_hour, 0))
+
+#         while current_dt + timedelta(hours=duration_hours) <= end_dt_of_day:
+#             slot_start_dt = current_dt
+#             slot_end_dt = slot_start_dt + timedelta(hours=duration_hours)
+
+#             all_must_persons_available_for_duration = True
+#             total_available_for_duration = 0
+#             unavailable_for_duration = []
+
+#             # 检查 must_persons 在整个 duration 内是否都可用
+#             if num_must_persons > 0:
+#                 for p_id in must_person_ids_int:
+#                     person_available_duration = True
+#                     for event in user_events_map.get(p_id, []):
+#                         if event.start_time < slot_end_dt and event.end_time > slot_start_dt:
+#                             person_available_duration = False
+#                             break
+#                     if not person_available_duration:
+#                         all_must_persons_available_for_duration = False
+#                         break # 如果一个 must_person 不可用，则此时间段无效
+
+#             # 如果所有 must_persons 都可用（或没有 must_persons），则计算总可用人数
+#             if all_must_persons_available_for_duration:
+#                 for p_id in person_ids_int:
+#                     person_available_duration = True
+#                     for event in user_events_map.get(p_id, []):
+#                          if event.start_time < slot_end_dt and event.end_time > slot_start_dt:
+#                             person_available_duration = False
+#                             break
+#                     if person_available_duration:
+#                         total_available_for_duration += 1
+#                     else:
+#                         unavailable_for_duration.append(str(p_id))
+
+#                 # 添加到潜在建议列表
+#                 potential_suggestions.append({
+#                     "start_dt": slot_start_dt, # 保留 datetime 对象用于排序
+#                     "end_dt": slot_end_dt,
+#                     "available_people_count": total_available_for_duration,
+#                     "unavailable_people": unavailable_for_duration
+#                 })
+
+#             current_dt += timedelta(minutes=time_interval_minutes) # 每次移动 30 分钟查找下一个起始点
+#         current_date += timedelta(days=1)
+
+#     # 按可用人数降序排序
+#     potential_suggestions.sort(key=lambda x: x["available_people_count"], reverse=True)
+
+#     # 格式化 suggest_time (默认取前 10 个)
+#     initial_suggest_time = []
+#     min_suggest_count = min(suggest_count_want,len(potential_suggestions)-1)
+#     for suggestion in potential_suggestions[:min_suggest_count]:
+#         initial_suggest_time.append({
+#             "start_time": suggestion["start_dt"].strftime("%Y-%m-%d %H:%M"),
+#             "end_time": suggestion["end_dt"].strftime("%Y-%m-%d %H:%M"),
+#             "available_people_count": suggestion["available_people_count"],
+#             "unavailable_people": suggestion["unavailable_people"]
+#         })
+
+#     return time_slots, initial_suggest_time
+
+
+def calculate_availability(dayL: date, dayR: date, persons: list[str], must_persons: list[str], duration_hours: int, all_events: list[UserEvents],suggest_count_want:int =15,user_need: str=""):
     """
     计算时间段内的用户可用性，并生成 time_slots 和初步的 suggest_time。
     """
@@ -96,6 +246,10 @@ def calculate_availability(dayL: date, dayR: date, persons: list[str], must_pers
         time_slots.append(day_info)
         current_date += timedelta(days=1)
 
+    ai_array=process_query_schedule(dayL,dayR,user_need)
+    val_date=ai_array["date_weights"]
+    val_time=ai_array["time_weights"]
+    
     # --- 2. 计算初步的 suggest_time ---
     potential_suggestions = []
     current_date = dayL
@@ -136,19 +290,28 @@ def calculate_availability(dayL: date, dayR: date, persons: list[str], must_pers
                     else:
                         unavailable_for_duration.append(str(p_id))
 
+                delta_days=current_dt.date()-dayL
+                delta_times=current_dt-datetime.combine(current_date, time(start_hour, 0))
+
+                tot_times=delta_times.total_seconds() / 60 / 30
+                Val_time = 0
+                for t1 in range(int(tot_times),int(tot_times+int(duration_hours*2))):
+                    Val_time = Val_time + val_time[t1]
+                
                 # 添加到潜在建议列表
                 potential_suggestions.append({
                     "start_dt": slot_start_dt, # 保留 datetime 对象用于排序
                     "end_dt": slot_end_dt,
                     "available_people_count": total_available_for_duration,
-                    "unavailable_people": unavailable_for_duration
+                    "unavailable_people": unavailable_for_duration,
+                    "weights":total_available_for_duration*val_date[delta_days.days]*Val_time
                 })
 
             current_dt += timedelta(minutes=time_interval_minutes) # 每次移动 30 分钟查找下一个起始点
         current_date += timedelta(days=1)
 
     # 按可用人数降序排序
-    potential_suggestions.sort(key=lambda x: x["available_people_count"], reverse=True)
+    potential_suggestions.sort(key=lambda x: x["weights"], reverse=True)
 
     # 格式化 suggest_time (默认取前 10 个)
     initial_suggest_time = []
@@ -162,7 +325,6 @@ def calculate_availability(dayL: date, dayR: date, persons: list[str], must_pers
         })
 
     return time_slots, initial_suggest_time
-
 
 @bp.route('/api/crawl_nju_class', methods=['POST'])
 async def crawl_nju_class():
@@ -253,7 +415,7 @@ def handle_query_schedule():
         must_persons = data.get('must_persons', [])
         duration_time = float(data.get('duration_time', 1)) # 持续时间，单位小时
         user_need = data.get('user_need', '') # 获取用户需求
-        suggest_count_want=data.get("suggest_count_want",10)
+        # suggest_count_want=data.get("suggest_count_want",10)
         if not all([dayL_str, dayR_str, persons]):
              raise ValueError("Missing required fields: start_day, end_day, persons")
 
@@ -295,32 +457,32 @@ def handle_query_schedule():
 
         # --- 计算可用性 ---
         time_slots, initial_suggest_time = calculate_availability(
-            dayL, dayR, persons, must_persons, duration_time,  all_events,suggest_count_want=suggest_count_want
+            dayL, dayR, persons, must_persons, duration_time,  all_events,user_need=user_need
         )
 
         # --- 调用 AI 进行排序 ---
         final_suggest_time = initial_suggest_time # 默认使用初始排序
         
-        if user_need and initial_suggest_time:
-            try:
-                # 准备 AI 输入
-                ai_input_json = json.dumps(initial_suggest_time, ensure_ascii=False)
-                ##############################
+        # if user_need and initial_suggest_time:
+        #     try:
+        #         # 准备 AI 输入
+        #         ai_input_json = json.dumps(initial_suggest_time, ensure_ascii=False)
+        #         ##############################
 
-                # 调用 chat 函数 (需要替换为实际实现)
-                ai_output_json =  process_query_schedule(prompt_query_schedule=promopt_of_query_schedule,json_input=ai_input_json,user_need=user_need)
-                # 解析 AI 输出并处理
-                final_suggest_time = process_ai_output_of_query_schedule(ai_output_json)
+        #         # 调用 chat 函数 (需要替换为实际实现)
+        #         ai_output_json =  process_query_schedule(prompt_query_schedule=promopt_of_query_schedule,json_input=ai_input_json,user_need=user_need)
+        #         # 解析 AI 输出并处理
+        #         final_suggest_time = process_ai_output_of_query_schedule(ai_output_json)
 
-                ###############
-                print(final_suggest_time)
+        #         ###############
+        #         print(final_suggest_time)
 
 
-            except Exception as ai_error:
-                print(f"Error during AI sorting: {ai_error}. Falling back to initial suggestions.")
-                final_suggest_time = initial_suggest_time
-        else:
-             print("No user_need provided or no initial suggestions, skipping AI sort.")
+        #     except Exception as ai_error:
+        #         print(f"Error during AI sorting: {ai_error}. Falling back to initial suggestions.")
+        #         final_suggest_time = initial_suggest_time
+        # else:
+        #      print("No user_need provided or no initial suggestions, skipping AI sort.")
 
 
         # --- 准备最终响应 ---

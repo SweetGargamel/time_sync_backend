@@ -38,10 +38,17 @@ class LoginCredential:
 
     @classmethod
     async def from_login(cls, username: str, password: str, captcha_cb: Callable[[bytes], Any]) -> 'LoginCredential':
+        print("开始登录")
+        print("username:", username)
+        print("password:", password)
+        print("captcha:", captcha_cb)
         login_op_start = await LoginOperation.start()
         if not isinstance(login_op_start, LoginOperation.WaitingVerificationCode):
             raise RuntimeError("LoginOperation is not WaitingForVerificationCode after start()")
         
+        print("登录成果")
+ 
+              
         captcha_answer = await captcha_cb(login_op_start.captcha)
         login_op = await login_op_start.finish(username, password, captcha_answer)
         
@@ -86,16 +93,18 @@ class LoginOperation:
         def __init__(self, credential: LoginCredential):
             self.credential = credential
 
+    
     @staticmethod
-    async def start() -> WaitingVerificationCode:
+    async def start() -> WaitingVerificationCode:        
         headers = {
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15',
             'origin': 'https://authserver.nju.edu.cn',
             'referer': 'https://authserver.nju.edu.cn/authserver/login'
         }
         
-        session = aiohttp.ClientSession(headers=headers)
         
+        session = aiohttp.ClientSession(headers=headers)
+        print("在start函数里面成功获取session")
         try:
             async with session.get('https://authserver.nju.edu.cn/authserver/login') as resp:
                 html = await resp.text()

@@ -51,7 +51,9 @@ async def crawler(username="", password="") ->json:
             # 保存精简版数据
             # with open('simplified_courses.json', 'w', encoding='utf-8') as f:
             #     json.dump(simplified_data, f, ensure_ascii=False, indent=4)
-
+            print("简化版：",simplified_data)
+            print()
+            print()
             # 获取学期开始日期
             semester_start = await get_first_week_start(credential)
             # print("学期开始日期:", semester_start)

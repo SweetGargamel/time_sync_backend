@@ -72,6 +72,21 @@ async def process_LLM_event(event_data,process_event_prompt: str):
 
         output_events = json_response.get("events", []) # 使用 .get() 避免 KeyError
         
+        # 检查是否成功提取到事件
+        if not output_events or not any([ event for event in output_events ]):
+            output_entry = {
+                "id": event_id,
+                "status": "failed",
+                "details": [],
+                "msg": "没有提取到有效的事件"
+            }
+            # 更新LLMEvent状态
+            llm_event = db.session.query(LLMEvent).filter_by(id=event_id).first()
+            if llm_event:
+                llm_event.status = 'failed'
+                llm_event.returned_entry = output_entry
+                db.session.commit()
+            return output_entry
 
         # 为子事件添加元数据
         for output_event in output_events:
@@ -107,7 +122,8 @@ async def process_LLM_event(event_data,process_event_prompt: str):
             "id": event_id, # 原始事件ID
             "status": "success",
             "details": output_events,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "msg": "处理成功"
         }
 
         # 更新LLMEvent状态为success和returned_entry
@@ -131,7 +147,8 @@ async def process_LLM_event(event_data,process_event_prompt: str):
                     "id": event_id,
                     "status": "failed",
                     "error": str(e),
-                    "details": []
+                    "details": [],
+                    "msg": str(e)
                 }
                 db.session.commit()
         except Exception as db_e:
@@ -140,28 +157,61 @@ async def process_LLM_event(event_data,process_event_prompt: str):
         "id": event_id, # 原始事件ID
         "status": "failed",
         "details": [],
+        "msg": str(e) if 'e' in locals() else "处理失败"
     }
     return output_entry
+
+
+#旧版代码
+# from dashscope import Application
+# # 你需要用实际的 LLM 调用替换它
+# def process_query_schedule(prompt_query_schedule: str, json_input: str, user_need: str) -> json:
+#     print("--- AI Sort Simulation ---")
+#     print(f"User Need: {user_need}")
+#     print(f"Input Suggestions (JSON): {json_input}")
+#     msg=[
+#         {"role": "user", "content":json_input},
+#         {"role": "user", "content":user_need},
+#         {'role': 'user', 'content': '请严格按照prompt中的OutputFormat要求，只输出JSON格式的结果，不要包含任何解释或额外文本。'}
+#     ]
+    
+#     response = Application.call(
+#     # 若没有配置环境变量，可用百炼API Key将下行替换为：api_key="sk-xxx"。但不建议在生产环境中直接将API Key硬编码到代码中，以减少API Key泄露风险。
+#     api_key=Config.ALI_AGENT_APIKEY,
+#     app_id=Config.ALI_AGENT_ID,# 替换为实际的应用 ID
+#     messages=msg
+#     )
+#     print("智能体结果是:",response)
+#     json_str=response.output.text
+#     obj = {}
+
+#     try:
+#         obj = json.loads(json_str)
+#     except json.JSONDecodeError :
+#         obj = json_repair.loads(json_str)
+#     except Exception as e:
+#         print(e)
+#     return obj
+# # --- 结束占位符 ---
 
 
 
 from dashscope import Application
 # 你需要用实际的 LLM 调用替换它
-def process_query_schedule(prompt_query_schedule: str, json_input: str, user_need: str) -> json:
-    print("--- AI Sort Simulation ---")
+def process_query_schedule(dayL,dayR,user_need: str) -> json:
     print(f"User Need: {user_need}")
-    print(f"Input Suggestions (JSON): {json_input}")
     msg=[
-        {"role": "user", "content":json_input},
+        {"role": "user", "content":f"日期范围为{dayL.strftime("%Y-%m-%d")}到{dayR.strftime("%Y-%m-%d")},时间范围为8:00-22:00共28个时间段"},
         {"role": "user", "content":user_need},
-        {'role': 'user', 'content': '请严格按照prompt中的OutputFormat要求，只输出JSON格式的结果，不要包含任何解释或额外文本。'}
+        {'role': 'user', 'content': '请严格按照prompt中的输出格式要求，只输出JSON格式的结果，不要包含任何解释或额外文本。'}
     ]
     
     response = Application.call(
     # 若没有配置环境变量，可用百炼API Key将下行替换为：api_key="sk-xxx"。但不建议在生产环境中直接将API Key硬编码到代码中，以减少API Key泄露风险。
     api_key=Config.ALI_AGENT_APIKEY,
     app_id=Config.ALI_AGENT_ID,# 替换为实际的应用 ID
-    messages=msg
+    messages=msg,
+    response_format={"type": "json_object"}
     )
     print("智能体结果是:",response)
     json_str=response.output.text
@@ -175,6 +225,3 @@ def process_query_schedule(prompt_query_schedule: str, json_input: str, user_nee
         print(e)
     return obj
 # --- 结束占位符 ---
-
-
-
