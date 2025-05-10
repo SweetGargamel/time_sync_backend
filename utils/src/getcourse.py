@@ -8,11 +8,14 @@ async def build_client(auth: LoginCredential) -> aiohttp.ClientSession:
         'CASTGC': auth.castgc
     }
     
+    # 创建带有禁用 SSL 验证的 session
+    connector = aiohttp.TCPConnector(ssl=False)
     session = aiohttp.ClientSession(
         cookies=cookies,
         headers={
             'User-Agent': 'rust-reqwest/0.11.18'
-        }
+        },
+        connector=connector
     )
     return session
 

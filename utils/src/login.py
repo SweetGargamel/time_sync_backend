@@ -102,8 +102,9 @@ class LoginOperation:
             'referer': 'https://authserver.nju.edu.cn/authserver/login'
         }
         
-        
-        session = aiohttp.ClientSession(headers=headers)
+        # 创建带有禁用 SSL 验证的 session
+        connector = aiohttp.TCPConnector(ssl=False)
+        session = aiohttp.ClientSession(headers=headers, connector=connector)
         print("在start函数里面成功获取session")
         try:
             async with session.get('https://authserver.nju.edu.cn/authserver/login') as resp:
@@ -114,8 +115,10 @@ class LoginOperation:
 
             async with session.get('https://authserver.nju.edu.cn/authserver/captcha.html') as resp:
                 captcha = await resp.read()
-
+            print("在start函数里面成功获取验证码")
             return LoginOperation.WaitingVerificationCode(session, captcha, context)
-        except Exception:
+        except Exception as e:
+            print(e)
+
             await session.close()
             raise
