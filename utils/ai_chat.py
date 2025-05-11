@@ -12,7 +12,7 @@ import json
 import uuid
 # 确认 openai 版本 >= 1.0 并导入 AsyncOpenAI
 # pip install --upgrade openai
-from openai import AsyncOpenAI 
+from openai import OpenAI 
 import json_repair  # 新增
 from config import Config
 from utils.models import db, UserEvents, LLMEvent
@@ -23,8 +23,8 @@ from typing import List
 
 
 # 将 chat 函数改为异步函数
-async def chat_return_json(contents: List[str],process_event_prompt:str) -> json:
-    client=AsyncOpenAI(
+def chat_return_json(contents: List[str],process_event_prompt:str) -> json:
+    client=OpenAI(
     api_key=Config.get_key(),
     base_url=Config.OPENAI_BASE_URL,
     )
@@ -37,7 +37,7 @@ async def chat_return_json(contents: List[str],process_event_prompt:str) -> json
         # {"role": "assistant", "content": PREFILL_PRIFEX},
     ]
     print("--- AI chat_return_json started ---")
-    completion = await client.chat.completions.create(
+    completion = client.chat.completions.create(
         model=Config.MODEL_NAME,
         messages=msg,
         response_format={"type": "json_object"},
@@ -58,7 +58,7 @@ async def chat_return_json(contents: List[str],process_event_prompt:str) -> json
 
 
 # 创建一个异步函数来处理单个事件
-async def process_LLM_event(event_data,process_event_prompt: str):
+def process_LLM_event(event_data,process_event_prompt: str):
     """处理单个事件，调用大模型并返回结果或异常。"""
     event_id = event_data["id"]
     content = event_data["event_string"]
@@ -68,7 +68,7 @@ async def process_LLM_event(event_data,process_event_prompt: str):
 
     print(f"开始处理事件 ID: {event_id}")
     try:
-        json_response = await chat_return_json(contents=[content],process_event_prompt=process_event_prompt)
+        json_response = chat_return_json(contents=[content],process_event_prompt=process_event_prompt)
 
         output_events = json_response.get("events", []) # 使用 .get() 避免 KeyError
         

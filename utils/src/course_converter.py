@@ -23,11 +23,44 @@ def _parse_weekday(weekday_str):
     }
     return weekday_map.get(weekday_str)
 
-def _parse_weeks(weeks_str):
-    # 处理类似 "2-5周" 的格式
-    weeks = weeks_str.replace("周", "").split("-")
-    return int(weeks[0]), int(weeks[1])
+# def _parse_weeks(weeks_str):
+#     # 处理类似 "2-5周" 的格式
+#     weeks = weeks_str.replace("周", "").split("-")
+#     return int(weeks[0]), int(weeks[1])
+import re
 
+def _parse_weeks(weeks_str):
+    # 去除所有空格并分割周的范围和条件部分
+    weeks_str = weeks_str.strip().replace(" ", "")
+    parts = weeks_str.split("周", 1)
+    range_part = parts[0]
+    cond_part = parts[1] if len(parts) > 1 else ''
+    
+    # 解析周的范围
+    if '-' in range_part:
+        start_str, end_str = range_part.split('-')
+        start = int(start_str)
+        end = int(end_str)
+    else:
+        # 单个周的情况
+        start = end = int(range_part)
+    
+    weeks = list(range(start, end + 1))
+    
+    # 处理条件
+    condition = ''
+    if cond_part:
+        # 使用正则表达式提取括号中的条件
+        match = re.search(r'\((.*?)\)', cond_part)
+        if match:
+            condition = match.group(1)
+    
+    if condition == '双':
+        weeks = [w for w in weeks if w % 2 == 0]
+    elif condition == '单':
+        weeks = [w for w in weeks if w % 2 == 1]
+    
+    return weeks
 def _get_class_time(periods):
     # 处理类似 "7-8节" 或 "9-11节" 的格式
     periods = periods.replace("节", "").split("-")
@@ -85,11 +118,11 @@ def convert_to_events(courses_data: list, semester_start: str, username: str) ->
         periods = time_place[1]
         weeks = time_place[2]
         
-        start_week, end_week = _parse_weeks(weeks)
+        weeks = _parse_weeks(weeks)
         start_time, end_time = _get_class_time(periods)
         
         # 为每个周生成一个事件
-        for week in range(start_week, end_week + 1):
+        for week in weeks:
             event_date = _calculate_date(semester_start, week, weekday)
             
             event = {

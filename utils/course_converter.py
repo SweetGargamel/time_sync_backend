@@ -23,10 +23,40 @@ def _parse_weekday(weekday_str):
     }
     return weekday_map.get(weekday_str)
 
+import re
+
 def _parse_weeks(weeks_str):
-    # 处理类似 "2-5周" 的格式
-    weeks = weeks_str.replace("周", "").split("-")
-    return int(weeks[0]), int(weeks[1])
+    # 去除所有空格并分割周的范围和条件部分
+    weeks_str = weeks_str.strip().replace(" ", "")
+    parts = weeks_str.split("周", 1)
+    range_part = parts[0]
+    cond_part = parts[1] if len(parts) > 1 else ''
+    
+    # 解析周的范围
+    if '-' in range_part:
+        start_str, end_str = range_part.split('-')
+        start = int(start_str)
+        end = int(end_str)
+    else:
+        # 单个周的情况
+        start = end = int(range_part)
+    
+    weeks = list(range(start, end + 1))
+    
+    # 处理条件
+    condition = ''
+    if cond_part:
+        # 使用正则表达式提取括号中的条件
+        match = re.search(r'\((.*?)\)', cond_part)
+        if match:
+            condition = match.group(1)
+    
+    if condition == '双':
+        weeks = [w for w in weeks if w % 2 == 0]
+    elif condition == '单':
+        weeks = [w for w in weeks if w % 2 == 1]
+    
+    return weeks
 
 def _get_class_time(periods):
     # 处理类似 "7-8节" 或 "9-11节" 的格式
@@ -61,59 +91,63 @@ def _parse_exam_time(exam_time_str):
     return None, None, None
 
 def convert_to_events(courses_data: list, semester_start: datetime.date, username: str) -> dict:
-    """
-    将课程数据转换为事件格式
-    
-    Args:
-        courses_data (list): 课程数据列表
-        semester_start (datetime.date): 学期开始日期
-        username (str): 用户名
+    try:
+        """
+        将课程数据转换为事件格式
         
-    Returns:
-        dict: 包含转换后事件列表的字典
-    """
-    events = []
-    
-    for course in courses_data:
-        # 跳过自由时间的课程
-        if "自由时间" in course["c_time_place"]:
-            continue
+        Args:
+            courses_data (list): 课程数据列表
+            semester_start (datetime.date): 学期开始日期
+            username (str): 用户名
             
-        time_place = course["c_time_place"].split()
-        weekday = _parse_weekday(time_place[0])
-        periods = time_place[1]
-        weeks = time_place[2]
+        Returns:
+            dict: 包含转换后事件列表的字典
+        """
+        events = []
         
-        start_week, end_week = _parse_weeks(weeks)
-        start_time, end_time = _get_class_time(periods)
-        
-        # 为每个周生成一个事件
-        for week in range(start_week, end_week + 1):
-            event_date = _calculate_date(semester_start, week, weekday)
+        for course in courses_data:
+            # 跳过自由时间的课程
+            if "自由时间" in course["c_time_place"]:
+                continue
+                
+            time_place = course["c_time_place"].split()
+            weekday = _parse_weekday(time_place[0])
+            periods = time_place[1]
+            weeks = time_place[2]
             
-            event = {
-                "id": str(uuid.uuid4()),
-                "reason": f"{course['c_name']}{course['c_classroom']}{course['c_campus']} {course['c_time_place']}",
-                "persons": [username],
-                "start_date": event_date,
-                "start_time": start_time,
-                "end_date": event_date,
-                "end_time": end_time
-            }
-            events.append(event)
+            weeks= _parse_weeks(weeks)
+            start_time, end_time = _get_class_time(periods)
+            
+            # 为每个周生成一个事件
+            for week in weeks:
+                event_date = _calculate_date(semester_start, week, weekday)
+                
+                event = {
+                    "id": str(uuid.uuid4()),
+                    "reason": f"{course['c_name']}{course['c_classroom']}{course['c_campus']} {course['c_time_place']}",
+                    "persons": [username],
+                    "start_date": event_date,
+                    "start_time": start_time,
+                    "end_date": event_date,
+                    "end_time": end_time
+                }
+                events.append(event)
+            
+            # 处理考试时间
+            exam_date, exam_start_time, exam_end_time = _parse_exam_time(course["c_exam_time"])
+            if exam_date and exam_start_time and exam_end_time:
+                exam_event = {
+                    "id": str(uuid.uuid4()),
+                    "reason": f"{course['c_name']}期末考试 {course['c_campus']}",
+                    "persons": [username],
+                    "start_date": exam_date,
+                    "start_time": exam_start_time,
+                    "end_date": exam_date,
+                    "end_time": exam_end_time
+                }
+                events.append(exam_event)
         
-        # 处理考试时间
-        exam_date, exam_start_time, exam_end_time = _parse_exam_time(course["c_exam_time"])
-        if exam_date and exam_start_time and exam_end_time:
-            exam_event = {
-                "id": str(uuid.uuid4()),
-                "reason": f"{course['c_name']}期末考试 {course['c_campus']}",
-                "persons": [username],
-                "start_date": exam_date,
-                "start_time": exam_start_time,
-                "end_date": exam_date,
-                "end_time": exam_end_time
-            }
-            events.append(exam_event)
-    
-    return {"events": events} 
+        return {"events": events} 
+    except Exception as e:
+        print(f"Error converting courses to events: {e}")
+        return {"events": []}

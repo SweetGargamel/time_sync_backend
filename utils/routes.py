@@ -773,14 +773,14 @@ async def update_user_confirmed_events():
 
 
 ################################################################################################################################################################################################################################################################################################################################################################################################################################################################
-async def process_events_background(events_data, app):
+def process_events_background(events_data, app):
     """后台处理事件的函数"""
     print("开始处理事件",events_data)
     try:
         with app.app_context():
             for event in events_data:
                 try:
-                    result =await process_LLM_event(event, prompt_of_LLM_events)
+                    result =process_LLM_event(event, prompt_of_LLM_events)
                     print(result)
                 except Exception as e:
                     print(f"处理事件 {event['id']} 时出错: {e}")
@@ -788,8 +788,8 @@ async def process_events_background(events_data, app):
     except Exception as e:
         print(f"后台处理事件时出错: {e}")
 
-@bp.route("/api/upload_LLM_events",methods=['POST'])
-async def upload_LLM_events():
+@bp.route("/api/upload_LLM_events", methods=['POST'])
+def upload_LLM_events():  # 移除async关键字，因为不再需要异步处理
     data = request.get_json()
     try:
         events_data = data['events']
@@ -801,7 +801,7 @@ async def upload_LLM_events():
                 llm_event = LLMEvent(
                     id=event['id'],
                     timestamp=event['timestamp'],
-                    status='processing',  # 初始状态改为processing
+                    status='processing',
                     event_string=event['event_string'],
                     persons=event['persons'],
                     groups=event['groups']
@@ -809,8 +809,10 @@ async def upload_LLM_events():
                 db.session.merge(llm_event)
             db.session.commit()
 
-        # 使用 threading 在后台运行异步任务
-        thread = threading.Thread(target=lambda: asyncio.run(process_events_background(events_data, app_instance)))
+        thread = threading.Thread(
+            target=process_events_background,  # 直接传递函数
+            args=(events_data, app_instance)  # 传递参数
+        )
         thread.start()
         
         return jsonify({"code":200,"msg":"成功"})

@@ -34,7 +34,8 @@ async def crawler(username="", password="") ->json:
             
             # 解析原始数据
             course_json = json.loads(course_data)
-        
+            with open("courses.json", "w", encoding="utf-8") as f:
+                json.dump(course_json, f, ensure_ascii=False, indent=4)
             # 创建精简版数据
             simplified_data = []
             for course in course_json['datas']['cxxszhxqkb']['rows']:
@@ -49,8 +50,8 @@ async def crawler(username="", password="") ->json:
                 simplified_data.append(simplified_course)
             
             # 保存精简版数据
-            # with open('simplified_courses.json', 'w', encoding='utf-8') as f:
-            #     json.dump(simplified_data, f, ensure_ascii=False, indent=4)
+            with open('simplified_courses.json', 'w', encoding='utf-8') as f:
+                json.dump(simplified_data, f, ensure_ascii=False, indent=4)
             print("简化版：",simplified_data)
             print()
             print()
@@ -61,10 +62,10 @@ async def crawler(username="", password="") ->json:
             # 转换为事件格式
             events_data = convert_to_events(simplified_data, semester_start, username)
             
-            # # 保存事件数据
-            # with open('events.json', 'w', encoding='utf-8') as f:
-            #     json.dump(events_data, f, ensure_ascii=False, indent=4)
-            # print("事件数据已保存到 events.json")
+            # 保存事件数据
+            with open('events.json', 'w', encoding='utf-8') as f:
+                json.dump(events_data, f, ensure_ascii=False, indent=4)
+            print("事件数据已保存到 events.json")
 
             return events_data
 
