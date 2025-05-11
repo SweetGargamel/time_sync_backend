@@ -215,6 +215,7 @@ def process_query_schedule(dayL,dayR,user_need: str) -> json:
     )
     print("智能体结果是:",response)
     json_str=response.output.text
+    print("智能体结果是:",json_str)
     obj = {}
 
     try:

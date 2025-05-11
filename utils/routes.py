@@ -822,6 +822,63 @@ def upload_LLM_events():  # 移除async关键字，因为不再需要异步处�
         return jsonify({"code":500,"msg":"失败"}), 500
 
 
+from werkzeug.utils import secure_filename
+import os
+from flask import current_app
+
+# 移除Blueprint的config设置
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg'}  # 允许的文件类型
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@bp.route('/api/upload_file', methods=['POST'])
+def upload_file():
+    # 检查文件是否存在
+    if 'file' not in request.files:
+        return jsonify(code=400, msg='没有选择文件')
+    
+    file = request.files['file']
+    # 检查文件名是否合法
+    if file.filename == '':
+        return jsonify(code=400, msg='无效文件名')
+    
+    # 获取表单数据
+    file_id = request.form.get('id')
+    file_name = file.filename
+    
+    # 验证必要参数
+    if not file_id or not file_name:
+        return jsonify(code=400, msg='缺少ID或文件名参数')
+    
+    # 验证文件类型
+    if not allowed_file(file_name):
+        return jsonify(code=400, msg='不支持的文件类型')
+    
+    try:
+        # 获取上传目录配置
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        
+        # 确保上传目录存在
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # 安全处理文件名（使用自定义文件名+原扩展名）
+        # original_ext = file.filename.rsplit('.', 1)[1].lower()
+        safe_filename = f"{secure_filename(file_name)}"
+        
+        # 保存文件
+        file_path = os.path.join(upload_folder, safe_filename)
+        file.save(file_path)
+        response_json = jsonify( {
+        "code": 200,
+        "msg": "success",
+        "id": file_id,
+        "file_name": file_name
+        })
+        return response_json
+    except Exception as e:
+        return jsonify(code=500, msg=f'服务器错误: {str(e)}')
 
 
 @bp.route("/api/get_updating_events_url/<id>",methods=['GET'])
