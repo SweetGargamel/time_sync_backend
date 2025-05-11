@@ -201,7 +201,7 @@ from dashscope import Application
 def process_query_schedule(dayL,dayR,user_need: str) -> json:
     print(f"User Need: {user_need}")
     msg=[
-        {"role": "user", "content":f"日期范围为{dayL.strftime("%Y-%m-%d")}到{dayR.strftime("%Y-%m-%d")},时间范围为8:00-22:00共28个时间段"},
+        {"role": "user", "content":f"日期范围为{dayL.strftime('%Y-%m-%d')}到{dayR.strftime('%Y-%m-%d')},时间范围为8:00-22:00共28个时间段"},
         {"role": "user", "content":user_need},
         {'role': 'user', 'content': '请严格按照prompt中的输出格式要求，只输出JSON格式的结果，不要包含任何解释或额外文本。'}
     ]
