@@ -40,3 +40,7 @@ class LLMEvent(db.Model):
     returned_entry = db.Column(JSONB, nullable=True)
 
 
+class Files(db.Model):
+    __tablename__ = "files"
+    file_id = db.Column(db.String(64), primary_key=True)
+    file_path = db.Column(db.Text, nullable=False)

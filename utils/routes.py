@@ -870,6 +870,12 @@ def upload_file():
         # 保存文件
         file_path = os.path.join(upload_folder, safe_filename)
         file.save(file_path)
+        new_file = Files(
+            file_id=file_id,
+            file_path=file_path
+        )
+        db.session.add(new_file)
+        db.session.commit()
         response_json = jsonify( {
         "code": 200,
         "msg": "success",
@@ -913,6 +919,88 @@ def get_updating_events_url(id):
             "status": "failed",
             "details": []
         }), 500
+
+
+
+@bp.route("/api/view_events",methods=['POST'])
+def view_events():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid input"}), 400
+
+    try:
+        # 获取请求参数
+        person_ids = data.get('id')
+        start_date_str = data.get('start_date')
+        start_time_str = data.get('start_time', '00:00')
+        end_date_str = data.get('end_date')
+        end_time_str = data.get('end_time', '23:59')
+
+        # 检查必要参数
+        if not all([start_date_str, end_date_str]):
+            return jsonify({"error": "Missing required date parameters"}), 400
+
+        # 转换日期时间格式
+        try:
+            start_datetime = datetime.strptime(f"{start_date_str} {start_time_str}", "%Y-%m-%d %H:%M")
+            end_datetime = datetime.strptime(f"{end_date_str} {end_time_str}", "%Y-%m-%d %H:%M")
+        except ValueError as e:
+            return jsonify({"error": f"Invalid date time format: {str(e)}"}), 400
+
+        # 查询数据库
+        events = UserEvents.query.filter(
+            UserEvents.user_id.in_([int(person_ids)]),
+            UserEvents.start_time <= end_datetime,
+            UserEvents.end_time >= start_datetime
+        ).all()
+        
+
+        # 格式化返回结果
+        result = {
+            "events": [
+                {
+                    "id": event.event_id,
+                    "pid": str(event.user_id),
+                    "reason": event.reason,
+                    "start_date": event.start_time.strftime("%Y-%m-%d"),
+                    "start_time": event.start_time.strftime("%H:%M"),
+                    "end_date": event.end_time.strftime("%Y-%m-%d"),
+                    "end_time": event.end_time.strftime("%H:%M")
+                }
+                for event in events
+            ]
+        }
+        return jsonify(result)
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/delete_event",methods=['POST'])
+def delete_event():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid input"}), 400
+    
+    try:
+        # 获取要删除的事件ID列表
+        event_ids = data.get('events', [])
+        if not event_ids:
+            return jsonify({"error": "No event IDs provided"}), 400
+            
+        # 删除指定的事件
+        deleted_count = UserEvents.query.filter(UserEvents.event_id.in_(event_ids)).delete(synchronize_session=False)
+        
+        # 提交事务
+        db.session.commit()
+        
+        return jsonify({"code":200,"msg":"成功"}),200
+        
+    except Exception as e:
+        # 发生错误时回滚事务
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 
