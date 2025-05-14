@@ -830,12 +830,6 @@ from werkzeug.utils import secure_filename
 import os
 from flask import current_app
 
-# 移除Blueprint的config设置
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg','xlsx','csv'}  # 允许的文件类型
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 index = 0
@@ -853,6 +847,7 @@ def upload_file():
     # 获取表单数据
     file_id = request.form.get('id')
     if file_id is None:
+        print("缺少ID参数")
         return jsonify(code=400, msg='缺少ID参数')
     file_id = str(file_id)
     file_name = file.filename
@@ -861,9 +856,7 @@ def upload_file():
     if not file_id or not file_name:
         return jsonify(code=400, msg='缺少ID或文件名参数')
     
-    # 验证文件类型
-    if not allowed_file(file_name):
-        return jsonify(code=400, msg='不支持的文件类型')
+
     
     try:
         # 获取上传目录配置
@@ -1021,7 +1014,7 @@ def LLM_AI_insert_person():
     try:
         file_id = data.get('file_id')
         events = Files.query.filter(
-            UserEvents.file_id == file_id
+            Files.file_id == file_id
         ).all()
         file_path = events[0].file_path
         main.main(file_path)
