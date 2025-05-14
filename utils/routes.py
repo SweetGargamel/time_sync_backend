@@ -1,13 +1,17 @@
 from flask import Blueprint, request, jsonify, current_app
-from .models import db, User, Group, UserGroup, UserEvents, LLMEvent # 导入数据库模型
+from .models import db, User, Group, UserGroup, UserEvents, LLMEvent ,Files # 导入数据库模型
 from datetime import  datetime,date,time,timedelta
-
+from .add_person import main
 from utils.ai_chat import process_LLM_event, process_query_schedule
 import json
 import asyncio
 import threading # 新增导入
 from utils.Prompt import prompt_of_LLM_events, promopt_of_query_schedule  # 假设你有这些prompt
 from .Crawler import crawler
+
+# 初始化全局计数器
+index = 0
+
 bp = Blueprint('main', __name__)
 
 
@@ -827,12 +831,14 @@ import os
 from flask import current_app
 
 # 移除Blueprint的config设置
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg'}  # 允许的文件类型
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg','xlsx','csv'}  # 允许的文件类型
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+index = 0
 @bp.route('/api/upload_file', methods=['POST'])
 def upload_file():
     # 检查文件是否存在
@@ -846,8 +852,11 @@ def upload_file():
     
     # 获取表单数据
     file_id = request.form.get('id')
+    if file_id is None:
+        return jsonify(code=400, msg='缺少ID参数')
+    file_id = str(file_id)
     file_name = file.filename
-    
+    print(f"Received file_id: {file_id}")
     # 验证必要参数
     if not file_id or not file_name:
         return jsonify(code=400, msg='缺少ID或文件名参数')
@@ -865,8 +874,9 @@ def upload_file():
         
         # 安全处理文件名（使用自定义文件名+原扩展名）
         # original_ext = file.filename.rsplit('.', 1)[1].lower()
-        safe_filename = f"{secure_filename(file_name)}"
-        
+        global index
+        safe_filename = f"{index}_{file_name}"
+        index += 1
         # 保存文件
         file_path = os.path.join(upload_folder, safe_filename)
         file.save(file_path)
@@ -884,6 +894,7 @@ def upload_file():
         })
         return response_json
     except Exception as e:
+        print(e)
         return jsonify(code=500, msg=f'服务器错误: {str(e)}')
 
 
@@ -1001,6 +1012,23 @@ def delete_event():
         # 发生错误时回滚事务
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+
+
+@bp.route("/api/LLM_AI_insert_person", methods=['POST'])
+def LLM_AI_insert_person(): 
+    data = request.get_json()
+    try:
+        file_id = data.get('file_id')
+        events = Files.query.filter(
+            UserEvents.file_id == file_id
+        ).all()
+        file_path = events[0].file_path
+        main.main(file_path)
+        return jsonify({"code":200,"msg":"提交成功"})
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
 
 
 
