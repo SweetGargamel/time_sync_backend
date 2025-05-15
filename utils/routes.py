@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from .models import db, User, Group, UserGroup, UserEvents, LLMEvent ,Files # 导入数据库模型
 from datetime import  datetime,date,time,timedelta
 from .add_person import main
+from .llm_file_events import main
 from utils.ai_chat import process_LLM_event, process_query_schedule
 import json
 import asyncio
@@ -784,6 +785,18 @@ def process_events_background(events_data, app):
         with app.app_context():
             for event in events_data:
                 try:
+                    files_id = event.get('files',[])
+                    files_path = []
+                    eventstring = event['event_string']
+                    for file_id in files_id:
+                        file_record = Files.query.filter(
+                            Files.file_id == file_id
+                        ).first()
+                        if not file_record:
+                            return jsonify({"error": "File not found"}), 404
+                        files_path.append(file_record.file_path)
+                    agent_events = main.calc(file_path,eventstring)
+                    event['event_string'] = agent_events
                     result =process_LLM_event(event, prompt_of_LLM_events)
                     print(result)
                 except Exception as e:
@@ -1011,16 +1024,25 @@ def delete_event():
 @bp.route("/api/LLM_AI_insert_person", methods=['POST'])
 def LLM_AI_insert_person(): 
     data = request.get_json()
+    if not data or 'file_id' not in data:
+        return jsonify({"error": "Missing file_id parameter"}), 400
+
     try:
-        file_id = data.get('file_id')
-        events = Files.query.filter(
+        file_id = data['file_id']
+        file_record = Files.query.filter(
             Files.file_id == file_id
-        ).all()
-        file_path = events[0].file_path
+        ).first()
+        
+        if not file_record:
+            return jsonify({"error": "File not found"}), 404
+            
+        file_path = file_record.file_path
         main.main(file_path)
-        return jsonify({"code":200,"msg":"提交成功"})
+        return jsonify({"code":200,"msg":"提交成功"}),200
     except Exception as e:
         print(f"An error occurred: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 
 
 
