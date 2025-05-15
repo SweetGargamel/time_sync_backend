@@ -795,7 +795,7 @@ def process_events_background(events_data, app):
                         if not file_record:
                             return jsonify({"error": "File not found"}), 404
                         files_path.append(file_record.file_path)
-                    agent_events = main.calc(file_path,eventstring)
+                    agent_events = main.calc(files_path,eventstring)
                     event['event_string'] = agent_events
                     result =process_LLM_event(event, prompt_of_LLM_events)
                     print(result)
