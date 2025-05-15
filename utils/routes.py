@@ -997,6 +997,7 @@ def view_events():
 @bp.route("/api/delete_event",methods=['POST'])
 def delete_event():
     data = request.get_json()
+    print(data)
     if not data:
         return jsonify({"error": "Invalid input"}), 400
     

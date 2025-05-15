@@ -1,9 +1,9 @@
 import sys
 import json
 from http import HTTPStatus
-from ApplyFileUploadLease import Sample as ApplyLeaseSample
-from UploadTempFile import operate
-from AddFile import Sample as AddFileSample
+from .ApplyFileUploadLease import Sample as ApplyLeaseSample
+from .UploadTempFile import operate
+from .AddFile import Sample as AddFileSample
 import time
 from dashscope import Application
 from config import Config as cfg
