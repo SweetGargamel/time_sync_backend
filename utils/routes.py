@@ -795,10 +795,15 @@ def process_events_background(events_data, app):
                         if not file_record:
                             return jsonify({"error": "File not found"}), 404
                         files_path.append(file_record.file_path)
+                    if len(files_path) == 0:
+                        result =process_LLM_event(event, prompt_of_LLM_events)
+                        print(result)
+                        return
                     agent_events = main.calc(files_path,eventstring)
                     event['event_string'] = agent_events
                     result =process_LLM_event(event, prompt_of_LLM_events)
                     print(result)
+                    return
                 except Exception as e:
                     print(f"处理事件 {event['id']} 时出错: {e}")
                     continue
