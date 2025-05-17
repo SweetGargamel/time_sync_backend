@@ -26,10 +26,8 @@ class Sample:
         return bailian20231229Client(config)
 
     @staticmethod
-    def main(args: List[str],) -> None:
-        with open('lease_response.json', 'r', encoding='utf-8') as f:
-            response_data = json.load(f)
-            lease_id = response_data['Data']['FileUploadLeaseId']
+    def main(args: List[str],response_data) -> None:
+        lease_id = response_data['Data']['FileUploadLeaseId']
         client = Sample.create_client()
         add_file_request = bailian_20231229_models.AddFileRequest(
             lease_id=lease_id,
@@ -43,11 +41,9 @@ class Sample:
             response = client.add_file_with_options('llm-mkgotttbebky5zg6', add_file_request, headers, runtime)
             # 把第一个参数改为业务空间ID
             
+            new_response_data = response.body.to_map()
             # 保存返回值到json文件
-            with open('upload_response.json', 'w', encoding='utf-8') as f:
-                json.dump(response.body.to_map(), f, ensure_ascii=False, indent=4)
-            print("API返回值已保存到 upload_response.json")
-            
+            return new_response_data            
         except Exception as error:
             print(error.message)
             print(error.data.get("Recommend"))

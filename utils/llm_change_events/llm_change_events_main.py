@@ -31,7 +31,7 @@ def llm_change_events_main(prompt:str,user_id_list:List[str]):
         if(desc_type=="time_description" or desc_type=="time_with_description"):
             for user_id in user_id_list:
                 success_count,output=perform_change(prompt,user_id)
-                return success_count,output
+                return success_count
         else:
             print("desc_type",desc_type)
             raise UndefinedOperationError("您提供的信息不够充分(不包含详细的原来和要移动到的时间描述)，请您修改提示词后再操作")

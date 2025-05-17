@@ -1,7 +1,5 @@
 # 示例代码仅供参考，请勿在生产环境中直接使用
 import requests
-from urllib.parse import urlparse
-import json
 
 def upload_file(pre_signed_url, file_path, headers):
     try:
@@ -18,9 +16,7 @@ def upload_file(pre_signed_url, file_path, headers):
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
-def operate(file_path):
-    with open('lease_response.json', 'r', encoding='utf-8') as f:
-        response_data = json.load(f)
+def operate(file_path,response_data):
 
     pre_signed_url_or_http_url = response_data['Data']['Param']['Url']
     headers = {
