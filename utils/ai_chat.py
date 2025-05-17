@@ -25,7 +25,7 @@ from typing import List
 # 将 chat 函数改为异步函数
 def chat_return_json(contents: List[str],process_event_prompt:str) -> json:
     client=OpenAI(
-    api_key=Config.OPENAI_API_KEYS,
+    api_key=Config.get_key(),
     base_url=Config.OPENAI_BASE_URL,
     )
     user_msg = [{"role": "user", "content": content} for content in contents]
