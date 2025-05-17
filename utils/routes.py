@@ -1048,8 +1048,23 @@ def LLM_AI_insert_person():
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
-
+from utils.llm_change_events.llm_change_events_main import llm_change_events_main
+@bp.route("/api/LLM_change_events", methods=['POST'])
+def LLM_change_events():
+    data = request.get_json()
+    user_need=data.get("user_need","")
+    persons=data.get("persons","")
+    if not user_need or not persons:
+        return jsonify({"error": "Missing user_need or persons parameter"}), 400
+    try:
+        count=llm_change_events_main(user_need,persons)
+        return jsonify({"code":200,"msg":f"提交成功,成功修改{count}个事件"}),200
+    except  Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return jsonify({
+            "code":400,
+            "msg":str(e)
+        }), 400
 
 
 

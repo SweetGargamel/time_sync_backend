@@ -53,7 +53,7 @@ def get_change_description(prompt):
     :return: 意图描述
     """
     response = Application.call(
-        api_key=cfg.WHC_INTENSION_API_KEY,  # 替换为实际的API Key
+        api_key=cfg.WHC_API_KEY,  # 替换为实际的API Key
         app_id=cfg.WHC_CHANGE_DESC_TYPE_APP_ID,  # 替换为实际的应用 ID
         prompt=prompt)
     # 处理响应
