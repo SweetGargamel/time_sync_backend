@@ -14,26 +14,24 @@ def calc(file_path_array,process_event_prompt):
         try:
             # 步骤1：调用申请上传租约
             print("开始申请上传租约...")
-            ApplyLeaseSample.main(file_path)
+            response_data=ApplyLeaseSample.main(file_path)
             time.sleep(2)  # 等待文件写入完成
-
+            print("response_data",response_data)
             # 步骤2：执行文件上传
             print("\n开始上传文件...")
-            operate(file_path)
+            operate(file_path,response_data=response_data)
             time.sleep(2)  # 等待上传完成
             
             # 步骤3：添加文件至数据管理
             print("\n开始添加文件至数据管理...")
-            AddFileSample.main(file_path)
+            new_response_data   =   AddFileSample.main(file_path,response_data=response_data)
             
             time.sleep(10) #文件上传要等一会儿，如果文件比较大，可以把这里再调大一点
             print("\n上传文件所有步骤执行完成！")
             
-            # 读取并解析upload_response.json
-            with open('upload_response.json', 'r', encoding='utf-8') as f:
-                response_data = json.load(f)
-                file_id = str(response_data['Data']['FileId'])
-                file_id_array.append(file_id)
+
+            file_id = str(new_response_data['Data']['FileId'])
+            file_id_array.append(file_id)
         except Exception as e:
             print(f"\n执行过程中出现错误: {str(e)}")
 
@@ -53,10 +51,8 @@ def calc(file_path_array,process_event_prompt):
             print(f'request_id={response.request_id}')
             print(f'code={response.status_code}')
             print(f'message={response.message}')
-            print(f'请参考文档：https://help.aliyun.com/zh/model-studio/developer-reference/error-code')
         else:
             return response.output.text
-            print('响应内容已保存到 response.txt')
         
 
 if __name__ == "__main__":

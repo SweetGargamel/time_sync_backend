@@ -3,14 +3,20 @@ from config import Config as cfg
 import json
 import json_repair
 
-def change_signle_event(user_need: str, event_id: str):
+def change_signle_event(user_need: str, event_id: str,index=0):
+    if(index == 0):
+        app_id  = cfg.WHC_CHANGE_TIME_PERFORM_SINGLE_CHANGE_APP_ID
+    else:
+        app_id  = cfg.WHC_CHANGE_TIME_PERFORM_SINGLE_CHANGE_APP_ID2
     response = Application.call(
         api_key=cfg.WHC_API_KEY,
-        app_id=cfg.WHC_CHANGE_TIME_PERFORM_SINGLE_CHANGE_APP_ID,  # 替换为实际的应用 ID
+        app_id=app_id,  # 替换为实际的应用 ID
         prompt=user_need,
         biz_params={
             "event_id": event_id,
         },
+        has_thoughts=True,  # 是否开启思考过程
+
     )
     print("change signle response:", response)
     json_str = response["output"]["text"]
@@ -50,8 +56,10 @@ def perform_change(user_need: str, user_id: str) -> str:
     output_list  = []
     print(id_list)
     success_cout = 0
+    index =0
     for i in id_list:
-        output=change_signle_event(user_need, i)
+        output=change_signle_event(user_need, i,index=index%2)
+        print(i)
         output["event_id"] = i
         if(output.get("code",400) == 200):
             success_cout += 1

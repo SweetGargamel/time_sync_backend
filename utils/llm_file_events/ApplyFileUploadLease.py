@@ -57,10 +57,12 @@ class Sample:
                 headers,
                 runtime
             )
-            with open('lease_response.json', 'w', encoding='utf-8') as f:
-                json.dump(response.body.to_map(), f, ensure_ascii=False, indent=4)
-            
-            print("API返回值已保存到 lease_response.json")
+            # with open('lease_response.json', 'w', encoding='utf-8') as f:
+            #     json.dump(response.body.to_map(), f, ensure_ascii=False, indent=4)
+            response_data = json.loads(json.dumps(response.body.to_map(), ensure_ascii=False, indent=4))
+            print("在llmfileeventsAPI返回值为",response_data)
+
+            return response_data
         except Exception as error:
             print(error.message)
             print(error.data.get("Recommend"))
