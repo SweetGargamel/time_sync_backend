@@ -56,9 +56,9 @@ def chat_return_json(contents: List[str],process_event_prompt:str) -> json:
         print(e)
     return obj
 
-
+from utils.llm_file_events.llm_file_events_main import calc_with_file, calc_witout_file
 # 创建一个异步函数来处理单个事件
-def process_LLM_event(event_data,process_event_prompt: str):
+def process_LLM_event(event_data,files_paths=[]):
     """处理单个事件，调用大模型并返回结果或异常。"""
     event_id = event_data["id"]
     content = event_data["event_string"]
@@ -66,10 +66,16 @@ def process_LLM_event(event_data,process_event_prompt: str):
     persons = event_data["persons"]
     groups = event_data["groups"]
 
-    print(f"开始处理事件 ID: {event_id}")
+    print(f"process_LLM_event 开始处理事件 ID: {event_id}")
+    print(files_paths)
+    print(event_data)
     try:
-        json_response = chat_return_json(contents=[content],process_event_prompt=process_event_prompt)
-
+        # json_response = chat_return_json(contents=[content],process_event_prompt=process_event_prompt)
+        json_response ={}
+        if files_paths:
+            json_response = calc_with_file(files_paths,content)
+        else:
+            json_response = calc_witout_file(content)
         output_events = json_response.get("events", []) # 使用 .get() 避免 KeyError
         
         # 检查是否成功提取到事件

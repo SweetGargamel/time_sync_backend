@@ -13,7 +13,7 @@ from alibabacloud_tea_util import models as util_models
 from alibabacloud_tea_util.client import Client as UtilClient
 
 
-class Sample:
+class ApplyFileUpload:
     def __init__(self):
         pass
 
@@ -39,10 +39,10 @@ class Sample:
     def main(args: List[str],path) -> None:
         # 计算文件的MD5值
         file_path = path
-        file_md5 = Sample.calculate_md5(file_path)
+        file_md5 = ApplyFileUpload.calculate_md5(file_path)
         file_size = str(os.path.getsize(file_path))  
 
-        client = Sample.create_client()
+        client = ApplyFileUpload.create_client()
         apply_file_upload_lease_request = bailian_20231229_models.ApplyFileUploadLeaseRequest(
             file_name=path,    
             md_5=file_md5,                   
@@ -60,10 +60,12 @@ class Sample:
                 headers,
                 runtime
             )
-            with open('lease_response.json', 'w', encoding='utf-8') as f:
-                json.dump(response.body.to_map(), f, ensure_ascii=False, indent=4)
-            
-            print("API返回值已保存到 lease_response.json")
+            # with open('lease_response.json', 'w', encoding='utf-8') as f:
+            #     json.dump(response.body.to_map(), f, ensure_ascii=False, indent=4)
+            response_data = response.body.to_map()
+            # print("API返回值已保存到 lease_response.json")
+            print("add_person reponse_data : " ,response_data)
+            return response_data
         except Exception as error:
             # 此处仅做打印展示，请谨慎对待异常处理，在工程项目中切勿直接忽略异常。
             # 错误 message
@@ -73,4 +75,4 @@ class Sample:
             UtilClient.assert_as_string(error.message)
 
 if __name__ == '__main__':
-    Sample.main(sys.argv[1:])
+    ApplyFileUpload.main(sys.argv[1:])

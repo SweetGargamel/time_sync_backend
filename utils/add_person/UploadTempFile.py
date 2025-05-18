@@ -18,9 +18,7 @@ def upload_file(pre_signed_url, file_path, headers):
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
-def operate(path):
-    with open('lease_response.json', 'r', encoding='utf-8') as f:
-        response_data = json.load(f)
+def operate(path,response_data):
 
     pre_signed_url_or_http_url = response_data['Data']['Param']['Url']
     headers = {

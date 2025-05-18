@@ -1,13 +1,12 @@
 from flask import Blueprint, request, jsonify, current_app
 from .models import db, User, Group, UserGroup, UserEvents, LLMEvent ,Files # 导入数据库模型
 from datetime import  datetime,date,time,timedelta
-from .add_person import main
-from .llm_file_events import main
+from .add_person import add_person_main
+# from .llm_file_events import llm_file_events_main
 from utils.ai_chat import process_LLM_event, process_query_schedule
 import json
 import asyncio
 import threading # 新增导入
-from utils.Prompt import prompt_of_LLM_events, promopt_of_query_schedule  # 假设你有这些prompt
 from .Crawler import crawler
 
 # 初始化全局计数器
@@ -786,24 +785,17 @@ def process_events_background(events_data, app):
             for event in events_data:
                 try:
                     files_id = event.get('files',[])
-                    files_path = []
-                    eventstring = event['event_string']
+                    files_paths = []
+                    # eventstring = event['event_string']
                     for file_id in files_id:
                         file_record = Files.query.filter(
                             Files.file_id == file_id
                         ).first()
                         if not file_record:
                             return jsonify({"error": "File not found"}), 404
-                        files_path.append(file_record.file_path)
-                    if len(files_path) == 0:
-                        result =process_LLM_event(event, prompt_of_LLM_events)
-                        print(result)
-                        return
-                    agent_events = main.calc(files_path,eventstring)
-                    event['event_string'] = agent_events
-                    result =process_LLM_event(event, prompt_of_LLM_events)
+                        files_paths.append(file_record.file_path)
+                    result=process_LLM_event(event,files_paths)
                     print(result)
-                    return
                 except Exception as e:
                     print(f"处理事件 {event['id']} 时出错: {e}")
                     continue
@@ -844,7 +836,6 @@ def upload_LLM_events():  # 移除async关键字，因为不再需要异步处�
         return jsonify({"code":500,"msg":"失败"}), 500
 
 
-from werkzeug.utils import secure_filename
 import os
 from flask import current_app
 
@@ -1043,7 +1034,7 @@ def LLM_AI_insert_person():
             return jsonify({"error": "File not found"}), 404
             
         file_path = file_record.file_path
-        main.main(file_path)
+        add_person_main.main(file_path)
         return jsonify({"code":200,"msg":"提交成功"}),200
     except Exception as e:
         print(f"An error occurred: {str(e)}")
@@ -1065,7 +1056,16 @@ def LLM_change_events():
             "code":400,
             "msg":str(e)
         }), 400
-
+from utils.llm_choose_people.llm_choose_people import llm_choose_people
+@bp.route("/api/LLM_form_group", methods=['POST'])
+def LLM_form_group():
+    data = request.get_json()
+    user_need=data.get("user_need","")
+    if(user_need==""):
+        return jsonify({"error": "Missing user_need parameter"}), 400
+    response=llm_choose_people(user_need)
+    print(response)
+    return jsonify({"persons":response}),200
 
 
 @bp.route('/')
