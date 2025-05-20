@@ -77,7 +77,8 @@ def process_LLM_event(event_data,files_paths=[]):
         else:
             json_response = calc_witout_file(content)
         output_events = json_response.get("events", []) # 使用 .get() 避免 KeyError
-        
+        print(json_response)
+        print(output_events)
         # 检查是否成功提取到事件
         if not output_events or not any([ event for event in output_events ]):
             output_entry = {
@@ -214,8 +215,8 @@ def process_query_schedule(dayL,dayR,user_need: str) -> json:
     
     response = Application.call(
     # 若没有配置环境变量，可用百炼API Key将下行替换为：api_key="sk-xxx"。但不建议在生产环境中直接将API Key硬编码到代码中，以减少API Key泄露风险。
-    api_key=Config.ALI_AGENT_APIKEY,
-    app_id=Config.ALI_AGENT_ID,# 替换为实际的应用 ID
+    api_key=Config.CX_LLM_API_KEY,
+    app_id=Config.CX_LLM_APP_ID,# 替换为实际的应用 ID
     messages=msg,
     response_format={"type": "json_object"}
     )

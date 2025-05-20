@@ -253,7 +253,16 @@ def calculate_availability(dayL: date, dayR: date, persons: list[str], must_pers
     ai_array=process_query_schedule(dayL,dayR,user_need)
     val_date=ai_array["date_weights"]
     val_time=ai_array["time_weights"]
-    
+    try:
+        val_date=json.loads(val_date)
+    except json.JSONDecodeError:
+        import json_repair
+        val_date = json_repair.loads(val_date)
+    try:
+        val_time=json.loads(val_time)
+    except json.JSONDecodeError:
+        import json_repair
+        val_time = json_repair.loads(val_time)
     # --- 2. 计算初步的 suggest_time ---
     potential_suggestions = []
     current_date = dayL

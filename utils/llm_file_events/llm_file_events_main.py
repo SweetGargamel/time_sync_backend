@@ -41,7 +41,7 @@ def calc_with_file(file_path_array,user_need):
     response = Application.call(
         # 若没有配置环境变量，可用百炼API Key将下行替换为：api_key="sk-xxx"。但不建议在生产环境中直接将API Key硬编码到代码中，以减少API Key泄露风险。
         api_key=cfg.CX_LLM_API_KEY,
-        app_id=cfg.CX_LLM_APP_ID,# 替换为实际的应用 ID
+        app_id=cfg.CX_GET_EVENTSIDS_APP_ID,# 替换为实际的应用 ID
         prompt=f"用户要求：{user_need},\n用户的文件如下",
         rag_options={
             "session_file_ids": file_id_array,  # FILE_ID1 替换为实际的临时文件ID,逗号隔开多个
@@ -69,7 +69,7 @@ def calc_witout_file(user_need):
     response = Application.call(
         # 若没有配置环境变量，可用百炼API Key将下行替换为：api_key="sk-xxx"。但不建议在生产环境中直接将API Key硬编码到代码中，以减少API Key泄露风险。
         api_key=cfg.CX_LLM_API_KEY,
-        app_id=cfg.CX_LLM_APP_ID,# 替换为实际的应用 ID
+        app_id=cfg.CX_GET_EVENTSIDS_APP_ID,# 替换为实际的应用 ID
         prompt=f"用户要求：{user_need}",
 
         response_format={"type": "json_object"}
