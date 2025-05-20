@@ -1,13 +1,17 @@
 from flask import Blueprint, request, jsonify, current_app
-from .models import db, User, Group, UserGroup, UserEvents, LLMEvent # 导入数据库模型
+from .models import db, User, Group, UserGroup, UserEvents, LLMEvent ,Files # 导入数据库模型
 from datetime import  datetime,date,time,timedelta
-
+from .add_person import add_person_main
+# from .llm_file_events import llm_file_events_main
 from utils.ai_chat import process_LLM_event, process_query_schedule
 import json
 import asyncio
 import threading # 新增导入
-from utils.Prompt import prompt_of_LLM_events, promopt_of_query_schedule  # 假设你有这些prompt
 from .Crawler import crawler
+
+# 初始化全局计数器
+index = 0
+
 bp = Blueprint('main', __name__)
 
 
@@ -249,7 +253,16 @@ def calculate_availability(dayL: date, dayR: date, persons: list[str], must_pers
     ai_array=process_query_schedule(dayL,dayR,user_need)
     val_date=ai_array["date_weights"]
     val_time=ai_array["time_weights"]
-    
+    try:
+        val_date=json.loads(val_date)
+    except json.JSONDecodeError:
+        import json_repair
+        val_date = json_repair.loads(val_date)
+    try:
+        val_time=json.loads(val_time)
+    except json.JSONDecodeError:
+        import json_repair
+        val_time = json_repair.loads(val_time)
     # --- 2. 计算初步的 suggest_time ---
     potential_suggestions = []
     current_date = dayL
@@ -780,7 +793,17 @@ def process_events_background(events_data, app):
         with app.app_context():
             for event in events_data:
                 try:
-                    result =process_LLM_event(event, prompt_of_LLM_events)
+                    files_id = event.get('files',[])
+                    files_paths = []
+                    # eventstring = event['event_string']
+                    for file_id in files_id:
+                        file_record = Files.query.filter(
+                            Files.file_id == file_id
+                        ).first()
+                        if not file_record:
+                            return jsonify({"error": "File not found"}), 404
+                        files_paths.append(file_record.file_path)
+                    result=process_LLM_event(event,files_paths)
                     print(result)
                 except Exception as e:
                     print(f"处理事件 {event['id']} 时出错: {e}")
@@ -822,6 +845,68 @@ def upload_LLM_events():  # 移除async关键字，因为不再需要异步处�
         return jsonify({"code":500,"msg":"失败"}), 500
 
 
+import os
+from flask import current_app
+
+
+
+index = 0
+@bp.route('/api/upload_file', methods=['POST'])
+def upload_file():
+    # 检查文件是否存在
+    if 'file' not in request.files:
+        return jsonify(code=400, msg='没有选择文件')
+    
+    file = request.files['file']
+    # 检查文件名是否合法
+    if file.filename == '':
+        return jsonify(code=400, msg='无效文件名')
+    
+    # 获取表单数据
+    file_id = request.form.get('id')
+    if file_id is None:
+        print("缺少ID参数")
+        return jsonify(code=400, msg='缺少ID参数')
+    file_id = str(file_id)
+    file_name = file.filename
+    print(f"Received file_id: {file_id}")
+    # 验证必要参数
+    if not file_id or not file_name:
+        return jsonify(code=400, msg='缺少ID或文件名参数')
+    
+
+    
+    try:
+        # 获取上传目录配置
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        
+        # 确保上传目录存在
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # 安全处理文件名（使用自定义文件名+原扩展名）
+        # original_ext = file.filename.rsplit('.', 1)[1].lower()
+        global index
+        safe_filename = f"{index}_{file_name}"
+        index += 1
+        # 保存文件
+        file_path = os.path.join(upload_folder, safe_filename)
+        file.save(file_path)
+        new_file = Files(
+            file_id=file_id,
+            file_path=file_path
+        )
+        db.session.add(new_file)
+        db.session.commit()
+        response_json = jsonify( {
+        "code": 200,
+        "msg": "success",
+        "id": file_id,
+        "file_name": file_name
+        })
+        return response_json
+    except Exception as e:
+        print(e)
+        return jsonify(code=500, msg=f'服务器错误: {str(e)}')
 
 
 @bp.route("/api/get_updating_events_url/<id>",methods=['GET'])
@@ -857,6 +942,139 @@ def get_updating_events_url(id):
             "details": []
         }), 500
 
+
+
+@bp.route("/api/view_events",methods=['POST'])
+def view_events():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid input"}), 400
+
+    try:
+        # 获取请求参数
+        person_ids = data.get('id')
+        start_date_str = data.get('start_date')
+        start_time_str = data.get('start_time', '00:00')
+        end_date_str = data.get('end_date')
+        end_time_str = data.get('end_time', '23:59')
+
+        # 检查必要参数
+        if not all([start_date_str, end_date_str]):
+            return jsonify({"error": "Missing required date parameters"}), 400
+
+        # 转换日期时间格式
+        try:
+            start_datetime = datetime.strptime(f"{start_date_str} {start_time_str}", "%Y-%m-%d %H:%M")
+            end_datetime = datetime.strptime(f"{end_date_str} {end_time_str}", "%Y-%m-%d %H:%M")
+        except ValueError as e:
+            return jsonify({"error": f"Invalid date time format: {str(e)}"}), 400
+
+        # 查询数据库
+        events = UserEvents.query.filter(
+            UserEvents.user_id.in_([int(person_ids)]),
+            UserEvents.start_time <= end_datetime,
+            UserEvents.end_time >= start_datetime
+        ).all()
+        
+
+        # 格式化返回结果
+        result = {
+            "events": [
+                {
+                    "id": event.event_id,
+                    "pid": str(event.user_id),
+                    "reason": event.reason,
+                    "start_date": event.start_time.strftime("%Y-%m-%d"),
+                    "start_time": event.start_time.strftime("%H:%M"),
+                    "end_date": event.end_time.strftime("%Y-%m-%d"),
+                    "end_time": event.end_time.strftime("%H:%M")
+                }
+                for event in events
+            ]
+        }
+        return jsonify(result)
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/delete_event",methods=['POST'])
+def delete_event():
+    data = request.get_json()
+    print(data)
+    if not data:
+        return jsonify({"error": "Invalid input"}), 400
+    
+    try:
+        # 获取要删除的事件ID列表
+        event_ids = data.get('events', [])
+        if not event_ids:
+            return jsonify({"error": "No event IDs provided"}), 400
+            
+        # 删除指定的事件
+        deleted_count = UserEvents.query.filter(UserEvents.event_id.in_(event_ids)).delete(synchronize_session=False)
+        
+        # 提交事务
+        db.session.commit()
+        
+        return jsonify({"code":200,"msg":"成功"}),200
+        
+    except Exception as e:
+        # 发生错误时回滚事务
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+
+@bp.route("/api/LLM_AI_insert_person", methods=['POST'])
+def LLM_AI_insert_person(): 
+    data = request.get_json()
+    if not data or 'file_id' not in data:
+        return jsonify({"error": "Missing file_id parameter"}), 400
+
+    try:
+        file_id = data['file_id']
+        file_record = Files.query.filter(
+            Files.file_id == file_id
+        ).first()
+        
+        if not file_record:
+            return jsonify({"error": "File not found"}), 404
+            
+        file_path = file_record.file_path
+        add_person_main.main(file_path)
+        return jsonify({"code":200,"msg":"提交成功"}),200
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+from utils.llm_change_events.llm_change_events_main import llm_change_events_main
+@bp.route("/api/LLM_change_events", methods=['POST'])
+def LLM_change_events():
+    data = request.get_json()
+    user_need=data.get("user_need","")
+    persons=data.get("persons","")
+    if not user_need or not persons:
+        return jsonify({"error": "Missing user_need or persons parameter"}), 400
+    try:
+        count=llm_change_events_main(user_need,persons)
+        return jsonify({"code":200,"msg":f"提交成功,成功修改{count}个事件"}),200
+    except  Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return jsonify({
+            "code":400,
+            "msg":str(e)
+        }), 400
+from utils.llm_choose_people.llm_choose_people import llm_choose_people
+@bp.route("/api/LLM_form_group", methods=['POST'])
+def LLM_form_group():
+    data = request.get_json()
+    user_need=data.get("user_need","")
+    if(user_need==""):
+        return jsonify({"error": "Missing user_need parameter"}), 400
+    response=llm_choose_people(user_need)
+    print(response)
+    return jsonify({"persons":response}),200
 
 
 @bp.route('/')

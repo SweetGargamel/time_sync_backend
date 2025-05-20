@@ -56,9 +56,9 @@ def chat_return_json(contents: List[str],process_event_prompt:str) -> json:
         print(e)
     return obj
 
-
+from utils.llm_file_events.llm_file_events_main import calc_with_file, calc_witout_file
 # 创建一个异步函数来处理单个事件
-def process_LLM_event(event_data,process_event_prompt: str):
+def process_LLM_event(event_data,files_paths=[]):
     """处理单个事件，调用大模型并返回结果或异常。"""
     event_id = event_data["id"]
     content = event_data["event_string"]
@@ -66,12 +66,19 @@ def process_LLM_event(event_data,process_event_prompt: str):
     persons = event_data["persons"]
     groups = event_data["groups"]
 
-    print(f"开始处理事件 ID: {event_id}")
+    print(f"process_LLM_event 开始处理事件 ID: {event_id}")
+    print(files_paths)
+    print(event_data)
     try:
-        json_response = chat_return_json(contents=[content],process_event_prompt=process_event_prompt)
-
+        # json_response = chat_return_json(contents=[content],process_event_prompt=process_event_prompt)
+        json_response ={}
+        if files_paths:
+            json_response = calc_with_file(files_paths,content)
+        else:
+            json_response = calc_witout_file(content)
         output_events = json_response.get("events", []) # 使用 .get() 避免 KeyError
-        
+        print(json_response)
+        print(output_events)
         # 检查是否成功提取到事件
         if not output_events or not any([ event for event in output_events ]):
             output_entry = {
@@ -208,13 +215,14 @@ def process_query_schedule(dayL,dayR,user_need: str) -> json:
     
     response = Application.call(
     # 若没有配置环境变量，可用百炼API Key将下行替换为：api_key="sk-xxx"。但不建议在生产环境中直接将API Key硬编码到代码中，以减少API Key泄露风险。
-    api_key=Config.ALI_AGENT_APIKEY,
-    app_id=Config.ALI_AGENT_ID,# 替换为实际的应用 ID
+    api_key=Config.CX_LLM_API_KEY,
+    app_id=Config.CX_LLM_APP_ID,# 替换为实际的应用 ID
     messages=msg,
     response_format={"type": "json_object"}
     )
     print("智能体结果是:",response)
     json_str=response.output.text
+    print("智能体结果是:",json_str)
     obj = {}
 
     try:

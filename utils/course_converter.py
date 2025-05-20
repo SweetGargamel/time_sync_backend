@@ -124,7 +124,7 @@ def convert_to_events(courses_data: list, semester_start: datetime.date, usernam
                 
                 event = {
                     "id": str(uuid.uuid4()),
-                    "reason": f"{course['c_name']}{course['c_classroom']}{course['c_campus']} {course['c_time_place']}",
+                    "reason": f"{course['c_name']}课,{course['c_classroom']},{course['c_campus']} ,{course['c_time_place']}",
                     "persons": [username],
                     "start_date": event_date,
                     "start_time": start_time,
