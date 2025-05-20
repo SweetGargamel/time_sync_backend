@@ -6,7 +6,7 @@ db = SQLAlchemy()
 
 class User(db.Model):
     __tablename__ = "users"
-    user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     groups = db.relationship("Group", secondary="user_groups", back_populates="users")
     events = db.relationship("UserEvents", backref="user", cascade="all, delete-orphan")

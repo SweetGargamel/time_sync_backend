@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify, current_app
 from .models import db, User, Group, UserGroup, UserEvents, LLMEvent ,Files # 导入数据库模型
 from datetime import  datetime,date,time,timedelta
-from .add_person import add_person_main
+from .add_person.add_person_main import main as add_person_main  # Renamed to avoid conflict
 # from .llm_file_events import llm_file_events_main
 from utils.ai_chat import process_LLM_event, process_query_schedule
+import pandas as pd
 import json
 import asyncio
 import threading # 新增导入
@@ -13,10 +14,6 @@ from .Crawler import crawler
 index = 0
 
 bp = Blueprint('main', __name__)
-
-
-
-
 
 # def calculate_availability(dayL: date, dayR: date, persons: list[str], must_persons: list[str], duration_hours: float, all_events: list[UserEvents],suggest_count_want:int =10):
 #     """
@@ -1028,26 +1025,117 @@ def delete_event():
 
 
 @bp.route("/api/LLM_AI_insert_person", methods=['POST'])
-def LLM_AI_insert_person(): 
+def LLM_AI_insert_person():
+    import pandas as pd
     data = request.get_json()
-    if not data or 'file_id' not in data:
-        return jsonify({"error": "Missing file_id parameter"}), 400
+    # file_path = data.get('file_path') # Changed to get file_id then lookup path
+    file_id = data.get('file_id')
+    print(f"Received file_id for person insertion: {file_id}")
+    if not file_id:
+        return jsonify({"error": "Missing file_id"}), 400
 
     try:
-        file_id = data['file_id']
-        file_record = Files.query.filter(
-            Files.file_id == file_id
-        ).first()
-        
+        file_record = Files.query.filter_by(file_id=file_id).first()
         if not file_record:
-            return jsonify({"error": "File not found"}), 404
-            
+            return jsonify({"error": f"File with id {file_id} not found in Files table"}), 404
         file_path = file_record.file_path
-        add_person_main.main(file_path)
-        return jsonify({"code":200,"msg":"提交成功"}),200
+        print(f"File path from DB: {file_path}")
+
+        # 1. Fetch existing groups with IDs from the database
+        existing_groups_records = Group.query.all()
+        existing_groups_with_ids = [{'id': group.group_id, 'name': group.name} for group in existing_groups_records]
+        print(f"Existing groups with IDs from DB: {existing_groups_with_ids}")
+
+        # 2. Call add_person_main with file_path and existing_groups_with_ids
+        # add_person_main now returns: new_group_names_to_create, groups_from_file_with_db_ids, selected_data_df, id_col_idx, name_col_idx, college_col_idx
+
+#################
+
+        try:
+            new_group_names_to_create, groups_from_file_with_db_ids, selected_data_df, id_col_idx, name_col_idx, college_col_idx = add_person_main(file_path, existing_groups_with_ids)
+        except ValueError as ve:
+            current_app.logger.error(f"ValueError during add_person_main for file_id {file_id}: {ve}", exc_info=True)
+            return jsonify({"error": f"Error processing file: {str(ve)}"}), 400
+        
+        print(f"From add_person_main - New group names to create: {new_group_names_to_create}")
+        print(f"From add_person_main - Identified existing groups from file: {groups_from_file_with_db_ids}")
+        print(f"From add_person_main - College column index: {college_col_idx}")
+
+        # 3. Add new_group_names_to_create to the database (only if college_col_idx is not -1)
+        if college_col_idx != -1:
+            for group_name in new_group_names_to_create:
+                if group_name and not Group.query.filter_by(name=group_name).first():
+                    new_group_entry = Group(name=group_name)
+                    db.session.add(new_group_entry)
+            db.session.commit() # Commit new groups
+            print(f"Committed new groups to DB (if any).")
+        else:
+            print("Skipping group creation as college_column_idx is -1.")
+
+        # 4. Process selected_data_df to add persons and associate them with groups
+        # Re-fetch all groups including newly added ones for ID lookup (if groups were processed)
+        all_groups_map = {group.name: group.group_id for group in Group.query.all()} if college_col_idx != -1 else {}
+
+        if not selected_data_df.empty:
+            # selected_data_df now has standardized column names: 'person_id', 'person_name', 'group_name'
+            for index, row in selected_data_df.iterrows():
+                try:
+                    person_id_val = str(row['person_id'])
+                    person_name = str(row['person_name'])
+                    # group_name can be None if college_column_idx was -1
+                    group_name_from_file = str(row['group_name']) if pd.notna(row['group_name']) else None 
+
+                    if not person_id_val or not person_name:
+                        print(f"Skipping row {index} due to missing ID or Name: ID='{person_id_val}', Name='{person_name}'")
+                        continue
+
+                    # User handling: Add if not exists (based on name, could be enhanced with person_id_val)
+                    user = User.query.filter_by(name=person_name).first() 
+                    if not user:
+                        user = User(user_id=person_id_val,name=person_name) # Consider using person_id_val as a unique external ID if appropriate
+                        db.session.add(user)
+                        db.session.flush() # Get user.user_id
+                    
+                    # Group association (only if college_col_idx was not -1 and group_name_from_file is present)
+                    if college_col_idx != -1 and group_name_from_file:
+                        group_id_to_associate = None
+                        # Check if this group_name_from_file was identified as an existing group
+                        for identified_group in groups_from_file_with_db_ids:
+                            if identified_group.get('name_from_file') == group_name_from_file:
+                                group_id_to_associate = identified_group.get('id')
+                                break
+                        
+                        # If not found among identified_existing_groups, it might be a newly created group.
+                        if group_id_to_associate is None:
+                            group_id_to_associate = all_groups_map.get(group_name_from_file)
+
+                        if group_id_to_associate:
+                            user_group_exists = UserGroup.query.filter_by(user_id=user.user_id, group_id=group_id_to_associate).first()
+                            if not user_group_exists:
+                                user_group_association = UserGroup(user_id=user.user_id, group_id=group_id_to_associate)
+                                db.session.add(user_group_association)
+                        else:
+                            print(f"Warning: Group '{group_name_from_file}' for user '{person_name}' was not found or processed. This is expected if it wasn't in new_group_names_to_create or groups_from_file_with_db_ids.")
+                    elif college_col_idx == -1:
+                        print(f"Skipping group association for user '{person_name}' as no group column was processed.")
+
+                except Exception as e_row:
+                    print(f"Error processing row {index} (Name: {row.get('person_name', 'N/A')}): {e_row}")
+                    # Continue with next row
+        else:
+            print("selected_data_df is empty. No users to process.")
+
+        db.session.commit() # Commit users and associations
+        print(f"Committed new persons and associations to DB (if any).")
+
+        return jsonify({"message": "File processed successfully. Users and groups (if applicable) added/updated."}), 200
+    except FileNotFoundError:
+        return jsonify({"error": f"Uploaded file not found on server (path issue): {file_path if 'file_path' in locals() else 'unknown'}"}), 404
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        db.session.rollback()
+        current_app.logger.error(f"Error processing file_id {file_id} (path: {file_path if 'file_path' in locals() else 'unknown'}): {e}", exc_info=True)
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        
 from utils.llm_change_events.llm_change_events_main import llm_change_events_main
 @bp.route("/api/LLM_change_events", methods=['POST'])
 def LLM_change_events():
