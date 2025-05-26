@@ -4,6 +4,7 @@ from http import HTTPStatus
 from .ApplyFileUploadLease import Sample as ApplyLeaseSample
 from .UploadTempFile import operate
 from .AddFile import Sample as AddFileSample
+from .Describefile import Sample as DescribeFileSample
 import time
 from dashscope import Application
 from config import Config as cfg
@@ -12,6 +13,7 @@ def upload_files(file_path_array):
     file_id_array=[]
     for file_path in file_path_array:
         try:
+            
             # 步骤1：调用申请上传租约
             print("开始申请上传租约...")
             response_data=ApplyLeaseSample.main(file_path)
@@ -26,7 +28,12 @@ def upload_files(file_path_array):
             print("\n开始添加文件至数据管理...")
             new_response_data   =   AddFileSample.main(file_path,response_data=response_data)
             
-            time.sleep(30) #文件上传要等一会儿，如果文件比较大，可以把这里再调大一点
+            while(True):
+                file_id=str(new_response_data['Data']['FileId'])
+                if(DescribeFileSample.main(file_id)=='FILE_IS_READY'): 
+                    break
+                time.sleep(1)
+        
             print("\n上传文件所有步骤执行完成！")
             
 
@@ -56,6 +63,7 @@ def calc_with_file(file_path_array,user_need):
     else:
         obj = {}
         json_str = response.output.text
+        print(json_str)
         try:
             obj = json.loads(json_str)
         except json.JSONDecodeError :
@@ -92,5 +100,5 @@ def calc_witout_file(user_need):
 
 
 if __name__ == "__main__":
-    # calc(["example1.txt"],"00")
+    # calc_with_file(["example1.txt"],"")
     pass

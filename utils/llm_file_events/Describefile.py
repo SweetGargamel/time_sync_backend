@@ -36,17 +36,20 @@ class Sample:
         try:
             # 复制代码运行请自行打印 API 的返回值
             response=client.describe_file_with_options('llm-mkgotttbebky5zg6', file_id, headers, runtime)
-            print("describlefile",response)
             body=response.body
-            print("describlefile body",body)
+            print(body)
             Data=body.data
-            print("describlefile body data",Data)
+            # print(Data.FileName)
             Status=Data.status
-            print("describlefile body data status",Status)
             return Status
         except Exception as error:
-            print(f"Error: {error}")
-            return None
+            # 此处仅做打印展示，请谨慎对待异常处理，在工程项目中切勿直接忽略异常。
+            # 错误 message
+            print(error.message)
+            # 诊断地址
+            print(error.data.get("Recommend"))
+            UtilClient.assert_as_string(error.message)
+
 
 if __name__ == '__main__':
     Sample.main("file_session_28534920a0b54a618e89ebda172b9cd5_11381862")

@@ -5,6 +5,7 @@ TimeSync 是一款智能群体时间协调系统，专为解决多人日程匹�
 本系统采用前沿的智能算法和大语言模型技术，能够智能解析各类日程文本，自动提取时间信息，并通过高效的群体时间匹配算法，为组织者提供最优的时间安排建议。系统支持多种数据导入方式，提供直观的可视化界面，让时间协调变得简单高效。无论是学术会议、社团活动还是课程安排，TimeSync 都能帮助您轻松找到最适合的时间段，让组织管理工作事半功倍。
 
 > 注：稳定版代码在main分支，其他分支为测试分支
+
 ## RayNovate团队成员
 
 | 姓名   | 学号      | 专业             | 书院     |
@@ -22,49 +23,15 @@ TimeSync 是一款智能群体时间协调系统，专为解决多人日程匹�
 
 1. 克隆仓库到本地
 
-2. 运行一下代码安装依赖
+2. 运行一下代码安装依赖（建议先新建一个虚拟环境）
 
    ```bash
    pip install -r requirements.txt
    ```
 
-3. 在`/time_sync`目录下新增一个配置文件`Config.py`，内容如下：
+3. 在`/time_sync`目录下新增一个配置文件`config.py`，内容见下方的文件内容（在线仓库我们没有上传 ）。
 
-   ```python
-   import os
-
-   class Config:
-       # Flask应用程序的密钥
-       SECRET_KEY = os.environ.get('SECRET_KEY', 'dev')
-
-
-       # 应用程序名称
-       APP_NAME = os.environ.get('APP_NAME', 'Flask App')
-
-       # SQLAlchemy配置
-       SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'postgresql://username:password@localhost/time_sync')
-
-
-       SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-       index=0
-       OPENAI_API_KEYS = ["sk-****286","sk-****701"] #替换为您的阿里云api key
-       @staticmethod
-       def get_key():
-           Config.index+=1
-           if Config.index>=len(Config.OPENAI_API_KEYS):
-               Config.index=0
-           return Config.OPENAI_API_KEYS[Config.index]
-       OPENAI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-       #  阿里云智能体的apikey和id。我们在`route.py`里面用到了这个，用来处理query的信息。
-       ALI_AGENT_APIKEY="sk-****f8f"
-       ALI_AGENT_ID=''
-       MODEL_NAME="qwen-plus-latest"
-   ```
-
-4. 安装PostgreSQL数据库，并创建一个数据库`time_sync`。你也可以用其他数据库，但需要修改`Config.py`中的数据库配置。
-
-5. 因为安全原因，我们无法公开我们部署的阿里云的api_key，所以可能最后测试预定日程的时候无法调用ai返回的结果（会默认使用未经过大模型处理的结果）。您可以移步到我们已经部署的阿里云网站查看。
+4. 安装PostgreSQL数据库，并创建一个数据库`time_sync`。你也可以用其他数据库如MySQL。（目前我们的配置是直接连接到我们服务器上的数据库，如果您不想本地配置数据库的话可以直接套用我们的Config文件连接在线数据库）
 
 ## 前端使用方法
 
@@ -85,6 +52,8 @@ TimeSync 是一款智能群体时间协调系统，专为解决多人日程匹�
 您可以访问 http://47.122.85.137 来查看我们的已经部署好的网站。由于我们暂时只是测试阶段，允许所有人有修改人员和组信息，您可以做少量的删改的测试，但是请您不要把所有的人员信息都删除。
 
 由于阿里云的限制，我们的服务器暂时不允许绑定域名。同时我们购买的阿里云配置有限，可能会出现大量访问时出现卡顿的情况。
+
+由于我们的所有AI功能全部是依赖大模型实现的，可能会存在反应时间长的问题，请您耐心等待。
 
 ## 时光织梦：代码里的温度韵脚
 

@@ -1163,7 +1163,23 @@ def LLM_form_group():
     response=llm_choose_people(user_need)
     print(response)
     return jsonify({"persons":response}),200
+from utils.llm_operate_groups.llm_operate_groups import llm_operate_group
+@bp.route('/api/LLM_change_person_group', methods=['POST'])
+def LLM_change_person_group():
+    try:
+        data = request.get_json()
+        user_need=data.get("user_need","")
+        if(user_need==""):
+            return jsonify({"error": "Missing user_need parameter"}), 400
+        code,msg=llm_operate_group(user_need)
 
+        return jsonify({"code":code,"msg":msg}),200
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return jsonify({
+            "code":400,
+            "msg":str(e)
+        }), 400
 
 @bp.route('/')
 def home():
