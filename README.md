@@ -33,6 +33,52 @@ TimeSync 是一款智能群体时间协调系统，专为解决多人日程匹�
 
 4. 安装PostgreSQL数据库，并创建一个数据库`time_sync`。你也可以用其他数据库如MySQL。（目前我们的配置是直接连接到我们服务器上的数据库，如果您不想本地配置数据库的话可以直接套用我们的Config文件连接在线数据库）
 
+### 后端的项目结构
+
+```plaintext
+timesync_backend/
+│
+├── config.py
+├── run.py
+├── upload/
+│
+└── utils/
+    ├── __init__.py
+    ├── ai_chat.py
+    ├── course_converter.py
+    ├── Crawler.py
+    ├── models.py
+    ├── Prompt.py
+    ├── routes.py
+    │
+    ├── add_person/
+    │   ├── __init__.py
+    │   ├── add_person_main.py
+    │   ├── Identify_columns.py
+    │   └── Identify_nonrepeat_group.py
+    │
+    ├── llm_change_events/
+    │   ├── __init__.py
+    │   └── llm_change_events_main.py
+    │
+    ├── llm_file_events/
+    │   ├── __init__.py
+    │   ├── AddFile.py
+    │   ├── ApplyFileUploadLease.py
+    │   ├── Describefile.py
+    │   ├── llm_file_events_main.py
+    │   └── UploadTempFile.py
+    │
+    ├── llm_operate_groups/
+    │   ├── __init__.py
+    │   └── llm_operate_groups.py
+    │
+    └── src/
+        ├── __init__.py
+        ├── getcourse.py
+        └── login.py
+```
+
 ## 前端使用方法
 
 > 见[frontend](https://github.com/SweetGargamel/time_sync_frontend)
@@ -46,6 +92,50 @@ TimeSync 是一款智能群体时间协调系统，专为解决多人日程匹�
 4. 启动后端服务器
 
 5. 最后打开 http://localhost:5173/ 即可本地查看页面
+
+### 前端的项目结构
+
+```plaintext
+time_sync/
+│
+├── index.html
+├── package.json
+├── vite.config.js
+│
+├── public/
+│   └── favicon.ico
+│
+└── src/
+    ├── App.vue                 # 根组件
+    ├── main.js                 # 入口文件
+    │
+    ├── assets/                 # 静态资源
+    │   ├── favicon.ico
+    │   └── logo.png
+    │
+    ├── hooks/                  # 自定义钩子
+    │   ├── AI_Insert_Person.js
+    │   ├── file_uploader.js
+    │   ├── LLM_form_group.js
+    │   └── nju_crawler.js
+    │
+    ├── router/                 # 路由配置
+    │   └── index.js
+    │
+    ├── stores/                 # Pinia状态管理
+    │   ├── change_event.js
+    │   ├── events.js
+    │   ├── persongroup.js
+    │   ├── query.js
+    │   └── url.js
+    │
+    └── views/                  # 页面组件
+        ├── ChangeEvents.vue
+        ├── HomeView.vue
+        ├── QueryView.vue
+        ├── UpdatePersonView.vue
+        └── UpLoadEventsView.vue
+```
 
 ## 网站部署
 
