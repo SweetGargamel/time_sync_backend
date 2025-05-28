@@ -36,47 +36,39 @@ TimeSync 是一款智能群体时间协调系统，专为解决多人日程匹�
 ### 后端的项目结构
 
 ```plaintext
-timesync_backend/
-│
-├── config.py
-├── run.py
-├── upload/
-│
-└── utils/
-    ├── __init__.py
-    ├── ai_chat.py
-    ├── course_converter.py
-    ├── Crawler.py
-    ├── models.py
-    ├── Prompt.py
-    ├── routes.py
+后端 (timesync_backend/):
+├── config.py                   # 配置文件,包含数据库配置和API密钥等
+├── run.py                     # 应用程序入口文件
+├── upload/                    # 文件上传目录
+└── utils/                     # 工具函数目录
+    ├── ai_chat.py            # AI对话相关功能
+    ├── course_converter.py   # 课程数据转换器
+    ├── Crawler.py            # 教务网爬虫
+    ├── models.py             # 数据库模型定义
+    ├── Prompt.py            # AI提示词模板
+    ├── routes.py            # 路由处理函数
     │
-    ├── add_person/
-    │   ├── __init__.py
-    │   ├── add_person_main.py
-    │   ├── Identify_columns.py
-    │   └── Identify_nonrepeat_group.py
+    ├── add_person/          # 人员管理模块
+    │   ├── add_person_main.py         # 人员添加主要逻辑
+    │   ├── Identify_columns.py        # 表格列识别
+    │   └── Identify_nonrepeat_group.py # 去重组识别
     │
-    ├── llm_change_events/
-    │   ├── __init__.py
-    │   └── llm_change_events_main.py
+    ├── llm_change_events/   # 日程修改模块
+    │   └── llm_change_events_main.py  # 日程修改主要逻辑
     │
-    ├── llm_file_events/
-    │   ├── __init__.py
-    │   ├── AddFile.py
-    │   ├── ApplyFileUploadLease.py
-    │   ├── Describefile.py
-    │   ├── llm_file_events_main.py
-    │   └── UploadTempFile.py
+    ├── llm_file_events/     # 文件处理模块
+    │   ├── AddFile.py              # 添加文件
+    │   ├── ApplyFileUploadLease.py # 文件上传租约
+    │   ├── Describefile.py         # 文件描述
+    │   ├── llm_file_events_main.py # 文件事件主逻辑
+    │   └── UploadTempFile.py       # 临时文件上传
     │
-    ├── llm_operate_groups/
-    │   ├── __init__.py
-    │   └── llm_operate_groups.py
+    ├── llm_operate_groups/  # 组操作模块
+    │   └── llm_operate_groups.py   # 组操作主要逻辑
     │
-    └── src/
-        ├── __init__.py
-        ├── getcourse.py
-        └── login.py
+    └── src/                 # 基础功能模块
+        ├── getcourse.py     # 获取课程信息
+        └── login.py         # 登录相关功能
 ```
 
 ## 前端使用方法
@@ -96,45 +88,34 @@ timesync_backend/
 ### 前端的项目结构
 
 ```plaintext
-time_sync/
-│
-├── index.html
-├── package.json
-├── vite.config.js
-│
-├── public/
-│   └── favicon.ico
+前端 (time_sync/):
+├── index.html              # 入口HTML文件
+├── package.json           # 项目依赖配置
+├── vite.config.js        # Vite构建工具配置
 │
 └── src/
-    ├── App.vue                 # 根组件
-    ├── main.js                 # 入口文件
+    ├── App.vue           # 根组件
+    ├── main.js           # 应用入口文件
     │
-    ├── assets/                 # 静态资源
-    │   ├── favicon.ico
-    │   └── logo.png
+    ├── hooks/            # 自定义钩子函数
+    │   ├── AI_Insert_Person.js  # AI辅助添加人员
+    │   ├── file_uploader.js     # 文件上传处理
+    │   ├── LLM_form_group.js    # AI智能分组
+    │   └── nju_crawler.js       # 南大教务网爬虫
     │
-    ├── hooks/                  # 自定义钩子
-    │   ├── AI_Insert_Person.js
-    │   ├── file_uploader.js
-    │   ├── LLM_form_group.js
-    │   └── nju_crawler.js
+    ├── stores/           # 状态管理
+    │   ├── change_event.js    # 日程修改状态
+    │   ├── events.js          # 日程管理状态
+    │   ├── persongroup.js     # 人员和组管理状态
+    │   ├── query.js           # 查询相关状态
+    │   └── url.js             # API接口URL配置
     │
-    ├── router/                 # 路由配置
-    │   └── index.js
-    │
-    ├── stores/                 # Pinia状态管理
-    │   ├── change_event.js
-    │   ├── events.js
-    │   ├── persongroup.js
-    │   ├── query.js
-    │   └── url.js
-    │
-    └── views/                  # 页面组件
-        ├── ChangeEvents.vue
-        ├── HomeView.vue
-        ├── QueryView.vue
-        ├── UpdatePersonView.vue
-        └── UpLoadEventsView.vue
+    └── views/            # 页面组件
+        ├── ChangeEvents.vue    # 日程修改页面
+        ├── HomeView.vue        # 首页
+        ├── QueryView.vue       # 查询页面
+        ├── UpdatePersonView.vue # 人员管理页面
+        └── UpLoadEventsView.vue # 日程上传页面
 ```
 
 ## 网站部署
