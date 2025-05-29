@@ -10,6 +10,7 @@ from dashscope import Application
 from config import Config as cfg
 
 def upload_files(file_path_array):
+    print(file_path_array)
     file_id_array=[]
     for file_path in file_path_array:
         try:
@@ -27,12 +28,13 @@ def upload_files(file_path_array):
             # 步骤3：添加文件至数据管理
             print("\n开始添加文件至数据管理...")
             new_response_data   =   AddFileSample.main(file_path,response_data=response_data)
-            
-            while(True):
+            flag=True
+            while(flag):
+                time.sleep(1)
+
                 file_id=str(new_response_data['Data']['FileId'])
                 if(DescribeFileSample.main(file_id)=='FILE_IS_READY'): 
-                    break
-                time.sleep(1)
+                    flag=False
         
             print("\n上传文件所有步骤执行完成！")
             
@@ -41,7 +43,8 @@ def upload_files(file_path_array):
             file_id_array.append(file_id)
         except Exception as e:
             print(f"\n执行过程中出现错误: {str(e)}")
-        return file_id_array
+        print(file_id_array)
+    return file_id_array
 def calc_with_file(file_path_array,user_need):
     file_id_array=upload_files(file_path_array)
     #下面是我自己的智能体

@@ -658,9 +658,10 @@ def update_group():
                     results.append({"id": group_id, "status": "error", "message": "Group name (name) is required for creation"})
                     continue
                 new_group = Group(name=gname)
-                # Find users and add them to the group
-                users = User.query.filter(User.user_id.in_(gperson_ids)).all()
-                new_group.users = users
+                # Only try to add users if gperson_ids is not empty
+                if gperson_ids:
+                    users = User.query.filter(User.user_id.in_(gperson_ids)).all()
+                    new_group.users = users
                 db.session.add(new_group)
                 db.session.flush() # Get the new group's ID
                 results.append({"id": new_group.group_id, "status": "created"})
